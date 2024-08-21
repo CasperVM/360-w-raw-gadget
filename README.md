@@ -1,11 +1,22 @@
-# BtControlPassthru_0w
-Pi zero W project for controller passthrough BT -> USB
+# 360-raw-gadget
+360 controller raw USB gadget attempt.
+
+Initially tried using functionfs in both python and Rust, but this only worked on *nix hosts.
+The reason for this is that functionfs/gadgetfs only allows for well-defined USB classes/well-formed descriptors.
+After the interface descriptor, windows presumably expects a vendor-specific descriptor, which is not supported by functionfs.
+
+Thus, we'll try to use 
 
 
 # Sources
 
-Various useful links/sources:
+useful links/sources:
 
+- [360 usb data explainer](https://www.partsnotincluded.com/understanding-the-xbox-360-wired-controllers-usb-data/) 
+ -[usb raw gadget repo](https://github.com/xairy/raw-gadget)
+
+
+More sources (old):
 - [Composite USB Gadgets on the Raspberry Pi Zero](http://www.isticktoit.net/?p=1383)
 - [GPIO Joystick Driver](https://github.com/recalbox/mk_arcade_joystick_rpi)
 - [pi Pico based controller code](https://github.com/printnplay/PicoCader)
