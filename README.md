@@ -5,8 +5,9 @@ Initially tried using functionfs in both python and Rust, but this only worked o
 The reason for this is that functionfs/gadgetfs only allows for well-defined USB classes/well-formed descriptors.
 After the interface descriptor, windows presumably expects a vendor-specific descriptor, which is not supported by functionfs.
 
-Thus, we'll try to use 
+Thus, we'll try to use raw-gadget + c at least for emulating the controller.
 
+(First project using C, so don't judge too hard)
 
 # Sources
 
