@@ -43,9 +43,8 @@
 #define STRING_ID_MANUFACTURER 0x01
 #define STRING_ID_PRODUCT 0x02
 #define STRING_ID_SERIAL 0x03
-#define STRING_ID_IF3 0x04 // Interface 3 / Security method (unused on pc?)
-// #define STRING_ID_CONFIG	3
-// #define STRING_ID_INTERFACE	4
+// Interface 3 / Security method (unused on pc?)
+#define STRING_ID_IF3 0x04
 
 // Max sizes
 #define EP0_MAX_DATA 256
@@ -103,40 +102,34 @@ struct usb_qualifier_descriptor usb_qualifier = {
     .bRESERVED = 0,
 };
 
-#define EP_NUM_INT_IN 0x0 // Endpoint number for interrupt in
-struct usb_endpoint_descriptor usb_endpoint = {
-    .bLength = USB_DT_ENDPOINT_SIZE,
-    .bDescriptorType = USB_DT_ENDPOINT,
-    .bEndpointAddress = USB_DIR_IN | EP_NUM_INT_IN, // Bitwise OR, so 0x80 becaiuse first endpoint (0x0) is IN
-    .bmAttributes = USB_ENDPOINT_XFER_INT,          // Interrupt endpoint.
-    .wMaxPacketSize = EP_MAX_PACKET_INT,
-    .bInterval = 5,
-};
-
 struct usb_config_descriptor usb_config = {
     .bLength = USB_DT_CONFIG_SIZE,
     .bDescriptorType = USB_DT_CONFIG,
-    .wTotalLength = 0,   // computed later
-    .bNumInterfaces = 1, // 0x04 <- 4 interfaces, todo. try first with 1
+    .wTotalLength = 0,      // computed later
+    .bNumInterfaces = 0x04, // 0x04 <- 4 interfaces, todo. try first with 1
     .bConfigurationValue = 1,
     .iConfiguration = 0x00,
-    .bmAttributes = 0xA0,
-    .bMaxPower = 0xFA, // 500 mA
+    .bmAttributes = 0xA0, // NOT SELF-POWERED, REMOTE WAKEUP
+    .bMaxPower = 0xFA,    // 500 mA
 };
 
-struct usb_interface_descriptor usb_interface = {
+// INTERFACES
+
+// IF0; Control data
+struct usb_interface_descriptor usb_if0 = {
     .bLength = USB_DT_INTERFACE_SIZE,
     .bDescriptorType = USB_DT_INTERFACE,
     .bInterfaceNumber = 0x00,
     .bAlternateSetting = 0x00,
-    .bNumEndpoints = 0x01,
+    .bNumEndpoints = 0x02,   // 2 endpoints
     .bInterfaceClass = 0xFF, // Vendor specific
     .bInterfaceSubClass = 0x5D,
     .bInterfaceProtocol = 0x01,
     .iInterface = 0x00,
 };
 
-struct usb_interface_unknown_descriptor
+// Unknown descriptor for if0
+struct if0_unknown_desc
 {
     __u8 bLength;
     __u8 bDescriptorType;
@@ -159,7 +152,7 @@ struct usb_interface_unknown_descriptor
     __u8 unknown11;
 } __attribute__((packed));
 
-struct usb_interface_unknown_descriptor custom = {
+struct if0_unknown_desc if0_ud = {
     .bLength = 0x11,
     .bDescriptorType = 0x21,
     .unknown1 = 0x00,
@@ -177,6 +170,231 @@ struct usb_interface_unknown_descriptor custom = {
     .bMaxDataSize2 = 0x08,
     .unknown10 = 0x00,
     .unknown11 = 0x00,
+};
+
+// IF0_EP1_IN; Interrupt data
+#define IF0_EP1_ADDR 0x01 // Endpoint number
+struct usb_endpoint_descriptor usb_if0_ep1_in = {
+    .bLength = USB_DT_ENDPOINT_SIZE,
+    .bDescriptorType = USB_DT_ENDPOINT,
+    .bEndpointAddress = USB_DIR_IN | IF0_EP1_ADDR,    // Bitwise OR, so 0x81
+    .bmAttributes = USB_ENDPOINT_XFER_INT,            // Interrupt endpoint.
+    .wMaxPacketSize = __constant_cpu_to_le16(0x0020), // 32 bytes
+    .bInterval = 0x04,
+};
+// IF0_EP1_OUT; Interrupt data
+struct usb_endpoint_descriptor usb_if0_ep1_out = {
+    .bLength = USB_DT_ENDPOINT_SIZE,
+    .bDescriptorType = USB_DT_ENDPOINT,
+    .bEndpointAddress = USB_DIR_OUT | IF0_EP1_ADDR,   // Bitwise OR, so 0x01
+    .bmAttributes = USB_ENDPOINT_XFER_INT,            // Interrupt endpoint.
+    .wMaxPacketSize = __constant_cpu_to_le16(0x0020), // 32 bytes
+    .bInterval = 0x08,
+};
+// IF0 END //
+
+// IF1; Headset (and expansion port?)
+struct usb_interface_descriptor usb_if1 = {
+    .bLength = USB_DT_INTERFACE_SIZE,
+    .bDescriptorType = USB_DT_INTERFACE,
+    .bInterfaceNumber = 0x01,
+    .bAlternateSetting = 0x00,
+    .bNumEndpoints = 0x04,   // 4 endpoints
+    .bInterfaceClass = 0xFF, // Vendor specific
+    .bInterfaceSubClass = 0x5D,
+    .bInterfaceProtocol = 0x03,
+    .iInterface = 0x00,
+};
+
+// Unknown descriptor for if1
+struct if1_unknown_desc
+{
+    __u8 bLength;
+    __u8 bDescriptorType;
+
+    __u8 unknown1;
+    __u8 unknown2;
+    __u8 unknown3;
+    __u8 unknown4;
+
+    __u8 bEndpointAddress;
+    __u8 bMaxDataSize;
+    __u8 unknown5;
+    __u8 bEndpointAddress2;
+    __u8 bMaxDataSize2;
+    __u8 unknown6;
+    __u8 bEndpointAddress3;
+    __u8 bMaxDataSize3;
+    __u8 unknown7;
+    __u8 unknown8;
+    __u8 unknown9;
+    __u8 unknown10;
+    __u8 unknown11;
+    __u8 unknown12;
+    __u8 bEndpointAddress4;
+    __u8 bMaxDataSize4;
+    __u8 unknown13;
+    __u8 unknown14;
+    __u8 unknown15;
+    __u8 unknown16;
+    __u8 unknown17;
+} __attribute__((packed));
+
+struct if1_unknown_desc if1_ud = {
+    .bLength = 0x1B,
+    .bDescriptorType = 0x21,
+    .unknown1 = 0x00,
+    .unknown2 = 0x01,
+    .unknown3 = 0x01,
+    .unknown4 = 0x01,
+    .bEndpointAddress = 0x82,
+    .bMaxDataSize = 0x40,
+    .unknown5 = 0x01,
+    .bEndpointAddress2 = 0x02,
+    .bMaxDataSize2 = 0x20,
+    .unknown6 = 0x16,
+    .bEndpointAddress3 = 0x83,
+    .bMaxDataSize3 = 0x00,
+    .unknown7 = 0x00,
+    .unknown8 = 0x00,
+    .unknown9 = 0x00,
+    .unknown10 = 0x00,
+    .unknown11 = 0x00,
+    .unknown12 = 0x16,
+    .bEndpointAddress4 = 0x03,
+    .bMaxDataSize4 = 0x00,
+    .unknown13 = 0x00,
+    .unknown14 = 0x00,
+    .unknown15 = 0x00,
+    .unknown16 = 0x00,
+    .unknown17 = 0x00,
+};
+
+// IF1_EP2_IN; Microphone data send
+#define IF1_EP2_ADDR 0x02
+struct usb_endpoint_descriptor usb_if1_ep2_in = {
+    .bLength = USB_DT_ENDPOINT_SIZE,
+    .bDescriptorType = USB_DT_ENDPOINT,
+    .bEndpointAddress = USB_DIR_IN | IF1_EP2_ADDR,
+    .bmAttributes = USB_ENDPOINT_XFER_INT,            // Interrupt endpoint
+    .wMaxPacketSize = __constant_cpu_to_le16(0x0020), // 32 bytes
+    .bInterval = 0x02,
+};
+// IF1_EP2_OUT; Headset data receive
+struct usb_endpoint_descriptor usb_if1_ep2_out = {
+    .bLength = USB_DT_ENDPOINT_SIZE,
+    .bDescriptorType = USB_DT_ENDPOINT,
+    .bEndpointAddress = USB_DIR_OUT | IF1_EP2_ADDR,
+    .bmAttributes = USB_ENDPOINT_XFER_INT,            // Interrupt endpoint.
+    .wMaxPacketSize = __constant_cpu_to_le16(0x0020), // 32 bytes
+    .bInterval = 0x04,
+};
+// IF1_EP3_IN; Unknown data send
+#define IF1_EP3_ADDR 0x03
+struct usb_endpoint_descriptor usb_if1_ep3_in = {
+    .bLength = USB_DT_ENDPOINT_SIZE,
+    .bDescriptorType = USB_DT_ENDPOINT,
+    .bEndpointAddress = USB_DIR_IN | IF1_EP3_ADDR,
+    .bmAttributes = USB_ENDPOINT_XFER_INT,            // Interrupt endpoint
+    .wMaxPacketSize = __constant_cpu_to_le16(0x0020), // 32 bytes
+    .bInterval = 0x40,
+};
+// IF1_EP3_OUT; Unknown data receive
+struct usb_endpoint_descriptor usb_if1_ep3_out = {
+    .bLength = USB_DT_ENDPOINT_SIZE,
+    .bDescriptorType = USB_DT_ENDPOINT,
+    .bEndpointAddress = USB_DIR_OUT | IF1_EP3_ADDR,   // Bitwise OR, so 0x01
+    .bmAttributes = USB_ENDPOINT_XFER_INT,            // Interrupt endpoint.
+    .wMaxPacketSize = __constant_cpu_to_le16(0x0020), // 32 bytes
+    .bInterval = 0x10,
+};
+// IF1 END //
+
+// IF2; Unknown
+struct usb_interface_descriptor usb_if2 = {
+    .bLength = USB_DT_INTERFACE_SIZE,
+    .bDescriptorType = USB_DT_INTERFACE,
+    .bInterfaceNumber = 0x02,
+    .bAlternateSetting = 0x00,
+    .bNumEndpoints = 0x01,   // 1 endpoint
+    .bInterfaceClass = 0xFF, // Vendor specific
+    .bInterfaceSubClass = 0x5D,
+    .bInterfaceProtocol = 0x02,
+    .iInterface = 0x00,
+};
+
+// Unknown descriptor for if2
+struct if2_unknown_desc
+{
+    __u8 bLength;
+    __u8 bDescriptorType;
+
+    __u8 unknown1;
+    __u8 unknown2;
+    __u8 unknown3;
+    __u8 unknown4;
+
+    __u8 bEndpointAddress;
+    __u8 bMaxDataSize;
+    __u8 unknown5;
+} __attribute__((packed));
+
+struct if2_unknown_desc if2_ud = {
+    .bLength = 0x09,
+    .bDescriptorType = 0x21,
+    .unknown1 = 0x00,
+    .unknown2 = 0x01,
+    .unknown3 = 0x01,
+    .unknown4 = 0x22,
+    .bEndpointAddress = 0x84,
+    .bMaxDataSize = 0x07,
+    .unknown5 = 0x00,
+};
+
+// IF2_EP4_IN; Unknown data send
+#define IF2_EP4_ADDR 0x04
+struct usb_endpoint_descriptor usb_if2_ep4_in = {
+    .bLength = USB_DT_ENDPOINT_SIZE,
+    .bDescriptorType = USB_DT_ENDPOINT,
+    .bEndpointAddress = USB_DIR_IN | IF2_EP4_ADDR,
+    .bmAttributes = USB_ENDPOINT_XFER_INT,            // Interrupt endpoint
+    .wMaxPacketSize = __constant_cpu_to_le16(0x0020), // 32 bytes
+    .bInterval = 0x10,
+};
+// IF2 END //
+
+// IF3; Security method (unused on pc?)
+struct usb_interface_descriptor usb_if3 = {
+    .bLength = USB_DT_INTERFACE_SIZE,
+    .bDescriptorType = USB_DT_INTERFACE,
+    .bInterfaceNumber = 0x03,
+    .bAlternateSetting = 0x00,
+    .bNumEndpoints = 0x00,   // no endpoints
+    .bInterfaceClass = 0xFF, // Vendor specific
+    .bInterfaceSubClass = 0xFD,
+    .bInterfaceProtocol = 0x13,
+    .iInterface = 0x04,
+};
+
+// Unknown descriptor for if3
+struct if3_unknown_desc
+{
+    __u8 bLength;
+    __u8 bDescriptorType;
+
+    __u8 unknown1;
+    __u8 unknown2;
+    __u8 unknown3;
+    __u8 unknown4;
+} __attribute__((packed));
+
+struct if3_unknown_desc if3_ud = {
+    .bLength = 0x06,
+    .bDescriptorType = 0x41,
+    .unknown1 = 0x00,
+    .unknown2 = 0x01,
+    .unknown3 = 0x01,
+    .unknown4 = 0x03,
 };
 
 // taken from latest raw_gadget.h -> needed to rename the enum to avoid conflict (yay)
@@ -217,24 +435,103 @@ int build_config(char *data, int length, bool other_speed)
     length -= sizeof(usb_config);
     total_length += sizeof(usb_config);
 
-    assert(length >= sizeof(usb_interface));
-    memcpy(data, &usb_interface, sizeof(usb_interface));
-    data += sizeof(usb_interface);
-    length -= sizeof(usb_interface);
-    total_length += sizeof(usb_interface);
+    // IF0
+    assert(length >= sizeof(usb_if0));
+    memcpy(data, &usb_if0, sizeof(usb_if0));
+    data += sizeof(usb_if0);
+    length -= sizeof(usb_if0);
+    total_length += sizeof(usb_if0);
 
-    // Custom desscriptor for if0
-    assert(length >= sizeof(custom));
-    memcpy(data, &custom, sizeof(custom));
-    data += sizeof(custom);
-    length -= sizeof(custom);
-    total_length += sizeof(custom);
+    // IF 0 unknown descriptor
+    assert(length >= sizeof(if0_ud));
+    memcpy(data, &if0_ud, sizeof(if0_ud));
+    data += sizeof(if0_ud);
+    length -= sizeof(if0_ud);
+    total_length += sizeof(if0_ud);
 
+    // IF0 EP1 IN
     assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_endpoint, USB_DT_ENDPOINT_SIZE);
+    memcpy(data, &usb_if0_ep1_in, USB_DT_ENDPOINT_SIZE);
     data += USB_DT_ENDPOINT_SIZE;
     length -= USB_DT_ENDPOINT_SIZE;
     total_length += USB_DT_ENDPOINT_SIZE;
+
+    // IF0 EP1 OUT
+    assert(length >= USB_DT_ENDPOINT_SIZE);
+    memcpy(data, &usb_if0_ep1_out, USB_DT_ENDPOINT_SIZE);
+    data += USB_DT_ENDPOINT_SIZE;
+    length -= USB_DT_ENDPOINT_SIZE;
+    total_length += USB_DT_ENDPOINT_SIZE;
+
+    // IF1
+    assert(length >= sizeof(usb_if1));
+    memcpy(data, &usb_if1, sizeof(usb_if1));
+    data += sizeof(usb_if1);
+    length -= sizeof(usb_if1);
+    total_length += sizeof(usb_if1);
+
+    // IF 1 unknown descriptor
+    assert(length >= sizeof(if1_ud));
+    memcpy(data, &if1_ud, sizeof(if1_ud));
+    data += sizeof(if1_ud);
+    length -= sizeof(if1_ud);
+    total_length += sizeof(if1_ud);
+
+    // IF1 EP2 IN
+    assert(length >= USB_DT_ENDPOINT_SIZE);
+    memcpy(data, &usb_if1_ep2_in, USB_DT_ENDPOINT_SIZE);
+    data += USB_DT_ENDPOINT_SIZE;
+    length -= USB_DT_ENDPOINT_SIZE;
+    total_length += USB_DT_ENDPOINT_SIZE;
+
+    // IF1 EP2 OUT
+    assert(length >= USB_DT_ENDPOINT_SIZE);
+    memcpy(data, &usb_if1_ep2_out, USB_DT_ENDPOINT_SIZE);
+    data += USB_DT_ENDPOINT_SIZE;
+    length -= USB_DT_ENDPOINT_SIZE;
+    total_length += USB_DT_ENDPOINT_SIZE;
+
+    // IF1 EP3 IN
+    assert(length >= USB_DT_ENDPOINT_SIZE);
+    memcpy(data, &usb_if1_ep3_in, USB_DT_ENDPOINT_SIZE);
+    data += USB_DT_ENDPOINT_SIZE;
+    length -= USB_DT_ENDPOINT_SIZE;
+    total_length += USB_DT_ENDPOINT_SIZE;
+
+    // IF1 EP3 OUT
+    assert(length >= USB_DT_ENDPOINT_SIZE);
+    memcpy(data, &usb_if1_ep3_out, USB_DT_ENDPOINT_SIZE);
+    data += USB_DT_ENDPOINT_SIZE;
+    length -= USB_DT_ENDPOINT_SIZE;
+    total_length += USB_DT_ENDPOINT_SIZE;
+
+    // IF2
+    assert(length >= sizeof(usb_if2));
+    memcpy(data, &usb_if2, sizeof(usb_if2));
+    data += sizeof(usb_if2);
+    length -= sizeof(usb_if2);
+    total_length += sizeof(usb_if2);
+
+    // IF 2 unknown descriptor
+    assert(length >= sizeof(if2_ud));
+    memcpy(data, &if2_ud, sizeof(if2_ud));
+    data += sizeof(if2_ud);
+    length -= sizeof(if2_ud);
+    total_length += sizeof(if2_ud);
+
+    // IF2 EP4 IN
+    assert(length >= USB_DT_ENDPOINT_SIZE);
+    memcpy(data, &usb_if2_ep4_in, USB_DT_ENDPOINT_SIZE);
+    data += USB_DT_ENDPOINT_SIZE;
+    length -= USB_DT_ENDPOINT_SIZE;
+    total_length += USB_DT_ENDPOINT_SIZE;
+
+    // IF3
+    assert(length >= sizeof(usb_if3));
+    memcpy(data, &usb_if3, sizeof(usb_if3));
+    data += sizeof(usb_if3);
+    length -= sizeof(usb_if3);
+    total_length += sizeof(usb_if3);
 
     config->wTotalLength = __cpu_to_le16(total_length);
     printf("config->wTotalLength: %d\n", total_length);
@@ -475,11 +772,11 @@ void process_eps_info(int fd)
 
     for (int i = 0; i < num; i++)
     {
-        if (assign_ep_address(&info.eps[i], &usb_endpoint))
+        if (assign_ep_address(&info.eps[i], &usb_if0_ep1_in))
             continue;
     }
 
-    int ep_int_in_addr = usb_endpoint_num(&usb_endpoint);
+    int ep_int_in_addr = usb_endpoint_num(&usb_if0_ep1_in);
     assert(ep_int_in_addr != 0);
     printf("ep_int_in: addr = %u\n", ep_int_in_addr);
 }
@@ -846,7 +1143,7 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
             break;
         case USB_REQ_SET_CONFIGURATION:
             // Loop disabled for now.. -> different inputs for xbox as opposed to keyboard.
-            // ep_int_in = usb_raw_ep_enable(fd, &usb_endpoint);
+            // ep_int_in = usb_raw_ep_enable(fd, &usb_if0_ep1_in);
             // printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
             // int rv = pthread_create(&ep_int_in_thread, 0,
             // 		ep_int_in_loop, (void *)(long)fd);
@@ -861,7 +1158,7 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
             io->inner.length = 0;
             return true;
         case USB_REQ_GET_INTERFACE:
-            io->data[0] = usb_interface.bAlternateSetting;
+            io->data[0] = usb_if0.bAlternateSetting;
             io->inner.length = 1;
             return true;
         default:
