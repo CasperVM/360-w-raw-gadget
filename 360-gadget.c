@@ -48,7 +48,7 @@
 
 // Max sizes
 #define EP0_MAX_DATA 256
-// Device setting, 
+// Device setting,
 #define EP0_MAX_PACKET_CONTROL 0x08
 // EP1, control surface -> 32 bytes max. (in actuality, 20 bytes get sent)
 #define EP_MAX_PACKET_INT __constant_cpu_to_le16(0x0020)
@@ -1024,13 +1024,16 @@ void *ep_int_in_loop(void *arg)
     struct usb_raw_int_io io;
     io.inner.ep = ep_int_in;
     io.inner.flags = 0;
-    io.inner.length = 8;
+    io.inner.length = 20;
 
     while (true)
     {
-        // Send char 'x'
+        // A button press on the controller;
+        // 0x00, 0x14, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        // Blank input -> 20x 0x00
+        // Send button press 'A' (0x1b)
         memcpy(&io.inner.data[0],
-               "\x00\x00\x1b\x00\x00\x00\x00\x00", 8);
+               "\x00\x14\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 20);
         int rv = usb_raw_ep_write_may_fail(fd,
                                            (struct usb_raw_ep_io *)&io);
         if (rv < 0 && errno == ESHUTDOWN)
@@ -1050,7 +1053,7 @@ void *ep_int_in_loop(void *arg)
 
         // Reset inputs.
         memcpy(&io.inner.data[0],
-               "\x00\x00\x00\x00\x00\x00\x00\x00", 8);
+               "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 20);
         // TODO: Same as above, should handle this better
         rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
         if (rv < 0 && errno == ESHUTDOWN)
@@ -1145,16 +1148,17 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
             break;
         case USB_REQ_SET_CONFIGURATION:
             // Loop disabled for now.. -> different inputs for xbox as opposed to keyboard.
-            // ep_int_in = usb_raw_ep_enable(fd, &usb_if0_ep1_in);
-            // printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
-            // int rv = pthread_create(&ep_int_in_thread, 0,
-            // 		ep_int_in_loop, (void *)(long)fd);
-            // if (rv != 0) {
-            // 	perror("pthread_create(ep_int_in)");
-            // 	exit(EXIT_FAILURE);
-            // }
-            // ep_int_in_thread_spawned = true;
-            // printf("ep0: spawned ep_int_in thread\n");
+            ep_int_in = usb_raw_ep_enable(fd, &usb_if0_ep1_in);
+            printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
+            int rv = pthread_create(&ep_int_in_thread, 0,
+                                    ep_int_in_loop, (void *)(long)fd);
+            if (rv != 0)
+            {
+                perror("pthread_create(ep_int_in)");
+                exit(EXIT_FAILURE);
+            }
+            ep_int_in_thread_spawned = true;
+            printf("ep0: spawned ep_int_in thread\n");
             usb_raw_vbus_draw(fd, usb_config.bMaxPower);
             usb_raw_configure(fd);
             io->inner.length = 0;
@@ -1189,10 +1193,9 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
     case USB_TYPE_VENDOR:
         // Seen;
         // 0x1 -> Can be safely ignored? -> seems like this might be needed on some 3rd party controllers;
-        // https://github.com/torvalds/linux/blob/3d5f968a177d468cd13568ef901c5be84d83d32b/drivers/input/joystick/xpad.c#L1755        
+        // https://github.com/torvalds/linux/blob/3d5f968a177d468cd13568ef901c5be84d83d32b/drivers/input/joystick/xpad.c#L1755
 
         // Just ignore for now?
-
 
         // switch (event->ctrl.bRequest)
         // {
