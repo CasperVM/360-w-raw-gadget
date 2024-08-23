@@ -49,7 +49,7 @@
 // Max sizes
 #define EP0_MAX_DATA 256
 // Device setting,
-#define EP0_MAX_PACKET_CONTROL 0x08
+#define EP0_MAX_PACKET_CONTROL 64
 // EP1, control surface -> 32 bytes max. (in actuality, 20 bytes get sent)
 #define EP_MAX_PACKET_INT __constant_cpu_to_le16(0x0020)
 
@@ -75,8 +75,8 @@ struct usb_raw_int_io
 // Descriptors
 
 struct usb_device_descriptor usb_device = {
-    .bLength = 0x12,
-    .bDescriptorType = 0x01,
+    .bLength = USB_DT_DEVICE_SIZE,
+    .bDescriptorType = USB_DT_DEVICE,
     .bcdUSB = __constant_cpu_to_le16(BCD_USB),
     .bDeviceClass = 0xFF,
     .bDeviceSubClass = 0xFF,
@@ -84,7 +84,7 @@ struct usb_device_descriptor usb_device = {
     .bMaxPacketSize0 = EP0_MAX_PACKET_CONTROL,
     .idVendor = __constant_cpu_to_le16(USB_VENDOR),
     .idProduct = __constant_cpu_to_le16(USB_PRODUCT),
-    .bcdDevice = __constant_cpu_to_le16(0x0114),
+    .bcdDevice = 0,
     .iManufacturer = STRING_ID_MANUFACTURER,
     .iProduct = STRING_ID_PRODUCT,
     .iSerialNumber = STRING_ID_SERIAL,
