@@ -48,8 +48,10 @@
 
 // Max sizes
 #define EP0_MAX_DATA 256
-#define EP_MAX_PACKET_CONTROL 64
-#define EP_MAX_PACKET_INT 8
+// Device setting, 
+#define EP0_MAX_PACKET_CONTROL 0x08
+// EP1, control surface -> 32 bytes max. (in actuality, 20 bytes get sent)
+#define EP_MAX_PACKET_INT __constant_cpu_to_le16(0x0020)
 
 // Structs
 struct usb_raw_control_event
@@ -79,7 +81,7 @@ struct usb_device_descriptor usb_device = {
     .bDeviceClass = 0xFF,
     .bDeviceSubClass = 0xFF,
     .bDeviceProtocol = 0xFF,
-    .bMaxPacketSize0 = 0x08,
+    .bMaxPacketSize0 = EP0_MAX_PACKET_CONTROL,
     .idVendor = __constant_cpu_to_le16(USB_VENDOR),
     .idProduct = __constant_cpu_to_le16(USB_PRODUCT),
     .bcdDevice = __constant_cpu_to_le16(0x0114),
@@ -97,7 +99,7 @@ struct usb_qualifier_descriptor usb_qualifier = {
     .bDeviceClass = 0,
     .bDeviceSubClass = 0,
     .bDeviceProtocol = 0,
-    .bMaxPacketSize0 = EP_MAX_PACKET_CONTROL,
+    .bMaxPacketSize0 = EP0_MAX_PACKET_CONTROL,
     .bNumConfigurations = 1,
     .bRESERVED = 0,
 };
@@ -1137,7 +1139,7 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
                 printf("HID_DT_REPORT\n");
                 return true;
             default:
-                printf("fail: no response\n");
+                printf("fail: no response 1\n");
                 exit(EXIT_FAILURE);
             }
             break;
@@ -1162,7 +1164,7 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
             io->inner.length = 1;
             return true;
         default:
-            printf("fail: no response\n");
+            printf("fail: no response 2\n");
             exit(EXIT_FAILURE);
         }
         break;
@@ -1180,20 +1182,28 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
             io->inner.length = 0;
             return true;
         default:
-            printf("fail: no response\n");
+            printf("fail: no response 3\n");
             exit(EXIT_FAILURE);
         }
         break;
     case USB_TYPE_VENDOR:
-        switch (event->ctrl.bRequest)
-        {
-        default:
-            printf("fail: no response\n");
-            exit(EXIT_FAILURE);
-        }
+        // Seen;
+        // 0x1 -> Can be safely ignored? -> seems like this might be needed on some 3rd party controllers;
+        // https://github.com/torvalds/linux/blob/3d5f968a177d468cd13568ef901c5be84d83d32b/drivers/input/joystick/xpad.c#L1755        
+
+        // Just ignore for now?
+
+
+        // switch (event->ctrl.bRequest)
+        // {
+        // default:
+        //     printf("fail: no response 4\n");
+        //     exit(EXIT_FAILURE);
+        // }
+        return true;
         break;
     default:
-        printf("fail: no response\n");
+        printf("fail: no response 5\n");
         exit(EXIT_FAILURE);
     }
 }
