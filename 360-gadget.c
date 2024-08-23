@@ -43,6 +43,7 @@
 #define STRING_ID_MANUFACTURER	0x01
 #define STRING_ID_PRODUCT	0x02
 #define STRING_ID_SERIAL	0x03
+#define STRING_ID_IF3        0x04 // Interface 3 / Security method (unused on pc?)
 // #define STRING_ID_CONFIG	3
 // #define STRING_ID_INTERFACE	4
 
@@ -111,7 +112,7 @@ struct usb_endpoint_descriptor usb_endpoint = {
 
 struct usb_config_descriptor usb_config = {
 	.bLength =		USB_DT_CONFIG_SIZE,
-	.bDescriptorType =	USB_DT_INTERFACE,
+	.bDescriptorType =	USB_DT_CONFIG,
 	.wTotalLength =		0,  // computed later
 	.bNumInterfaces =	1, // 0x04 <- 4 interfaces, todo. try first with 1
 	.bConfigurationValue =	1,
@@ -443,6 +444,35 @@ void process_eps_info(int fd) {
 	printf("ep_int_in: addr = %u\n", ep_int_in_addr);
 }
 
+void set_usb_string_desc(const char* str, struct usb_raw_control_io *io) {
+    int str_len = strlen(str);
+    int descriptor_len = 2; // Initial length for length byte and descriptor type byte
+
+    io->data[1] = USB_DT_STRING;
+
+    // Process each character
+    for (int i = 0, pos = 2; i < str_len; i++) {
+        unsigned char c = str[i];
+        if (c == 0xC2 && i + 1 < str_len && (unsigned char)str[i + 1] == 0xA9) {
+            // Encode '©' in UTF-16LE
+            io->data[pos++] = 0xA9;
+            io->data[pos++] = 0x00;
+            i++; // Skip the next byte in the input string, as it's part of '©' UTF-8 encoding
+            // Adjust the descriptor length, as we're using 2 bytes for this character not 4.
+            // UTF-8 -> UTF-16LE: 4 bytes -> 2 bytes :-D
+            descriptor_len -= 2;
+        } else {
+            // Convert ASCII to UTF-16LE
+            io->data[pos++] = c;  // ASCII character
+            io->data[pos++] = 0x00;   // High byte (0x00 for basic ASCII chars)
+        }
+    }
+
+    descriptor_len += str_len * 2; // Adjust the descriptor length
+    io->data[0] = descriptor_len; // Set total length of the descriptor
+    io->inner.length = descriptor_len;  // Set the length field for transmission
+}
+
 // LOG
 
 void log_control_request(struct usb_ctrlrequest *ctrl) {
@@ -709,16 +739,34 @@ bool ep0_request(int fd, struct usb_raw_control_event *event,
 						sizeof(io->data), true);
 				return true;
 			case USB_DT_STRING:
-				io->data[0] = 4;
-				io->data[1] = USB_DT_STRING;
-				if ((event->ctrl.wValue & 0xff) == 0) {
-					io->data[2] = 0x09;
-					io->data[3] = 0x04;
-				} else {
-					io->data[2] = 'x';
-					io->data[3] = 0x00;
+                printf("STRING DESCRIPTOR REQ; %X\n", event->ctrl.wValue & 0xff);
+                switch (event->ctrl.wValue & 0xff) {
+                    case 0:
+                        // Language ID request (String descriptor 0)
+                        io->data[0] = 4; // bLength (4 bytes)
+                        io->data[1] = USB_DT_STRING;
+                        // No lang -> 0x0000
+                        io->data[2] = 0x00;
+                        io->data[3] = 0x00;
+                        io->inner.length = 4;
+                        break;
+                    case STRING_ID_MANUFACTURER:
+                        // Manufacturer string descriptor
+                        set_usb_string_desc("©Microsoft Corporation", io);
+                        break;
+                    case STRING_ID_PRODUCT:
+                        // Product string descriptor
+                        set_usb_string_desc("Controller", io);
+                        break;
+                    case STRING_ID_SERIAL:
+                        // Serial number string descriptor
+                        set_usb_string_desc("08FEC93", io);
+                        break;
+                    case STRING_ID_IF3:
+                        // Interface 3 string descriptor
+                        set_usb_string_desc("Xbox Security Method 3, Version 1.00, © 2005 Microsoft Corporation. All rights reserved.", io);  
+                        break;
 				}
-				io->inner.length = 4;
 				return true;
 			case HID_DT_REPORT:
 				// TOOD: unsure what to do here for now
