@@ -1050,7 +1050,7 @@ void *ep_int_in_loop(void *arg)
             exit(EXIT_FAILURE);
         }
         printf("ep_int_in: key down: %d\n", rv);
-
+        sleep(1);
         // Reset inputs.
         memcpy(&io.inner.data[0],
                "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 20);
@@ -1067,7 +1067,6 @@ void *ep_int_in_loop(void *arg)
             exit(EXIT_FAILURE);
         }
         printf("ep_int_in: key up: %d\n", rv);
-
         sleep(1);
     }
 
