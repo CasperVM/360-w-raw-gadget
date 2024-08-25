@@ -2,12 +2,16 @@
 
 CC=gcc
 CFLAGS=-O2 -Wall -g
+LDFLAGS = -lpthread
+
+SRCS = 360-gadget.c usb_descriptors.c usb_io.c usb_helpers.c
+OBJS = $(SRCS:.c=.o)
+TARGET = 360-gadget
 
 .PHONY: all
 
-all: keyboard 360-gadget
+all: $(TARGET)
 
-keyboard: keyboard.c
-	$(CC) -o $@ $< $(CFLAGS) -lpthread
-360-gadget: 360-gadget.c
-	$(CC) -o $@ $< $(CFLAGS) -lpthread
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $(OBJS) $(CFLAGS) $(LDFLAGS)
+
