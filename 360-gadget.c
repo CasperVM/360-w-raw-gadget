@@ -1,97 +1,6 @@
 #include "360-gadget.h"
 
-/*----------------------------------------------------------------------*/
-// Endpoint thread.
-
-// #include <pthread.h>
-// pthread_t ep_int_in_thread;
-// bool ep_int_in_thread_spawned = false;
-
-// void *ep_int_in_loop(void *arg)
-// {
-//     // INPUT
-//     // Loop to keep sending data to the interrupt endpoint
-//     int fd = (int)(long)arg;
-
-//     struct usb_raw_interrupt_ep1_io io;
-//     io.inner.ep = ep_int_in;
-//     io.inner.flags = 0;
-//     io.inner.length = 20;
-
-//     while (true)
-//     {
-//         // A button press on the controller;
-//         // 0x00, 0x14, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-//         // Blank input -> 20x 0x00
-//         // Send button press 'A' (0x1b)
-//         memcpy(&io.inner.data[0],
-//                "\x00\x14\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 20);
-//         int rv = usb_raw_ep_write_may_fail(fd,
-//                                            (struct usb_raw_ep_io *)&io);
-//         if (rv < 0 && errno == ESHUTDOWN)
-//         {
-//             // If the device was reset, exit the loop
-//             printf("ep_int_in: device was likely reset, exiting\n");
-//             break;
-//         }
-//         else if (rv < 0)
-//         {
-//             // Device busy?
-//             // TODO: should handle this better/try again
-//             perror("usb_raw_ep_write_may_fail()");
-//             exit(EXIT_FAILURE);
-//         }
-//         printf("ep_int_in: key down: %d\n", rv);
-//         sleep(1);
-//         // Reset inputs.
-//         memcpy(&io.inner.data[0],
-//                "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 20);
-//         // TODO: Same as above, should handle this better
-//         rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
-//         if (rv < 0 && errno == ESHUTDOWN)
-//         {
-//             printf("ep_int_in: device was likely reset, exiting\n");
-//             break;
-//         }
-//         else if (rv < 0)
-//         {
-//             perror("usb_raw_ep_write_may_fail()");
-//             exit(EXIT_FAILURE);
-//         }
-//         printf("ep_int_in: key up: %d\n", rv);
-//         sleep(1);
-//     }
-
-//     return NULL;
-// }
-
-/*----------------------------------------------------------------------*/
-
-// Endpoint addr (- = first available?)
-int ep_int_in = -1;
-bool ep_int_enabled = false;
-bool send_to_ep1(int fd, char *data, int len)
-{
-    if (!ep_int_enabled)
-    {
-        printf("ep_int_in not enabled / available\n");
-        return false;
-    }
-    struct usb_raw_interrupt_ep1_io io;
-    io.inner.ep = ep_int_in;
-    io.inner.flags = 0;
-    io.inner.length = len;
-    memcpy(&io.inner.data[0], data, len);
-    int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
-    if (rv < 0)
-    {
-        perror("usb_raw_ep_write()");
-        return false;
-    }
-    return true;
-}
-
-// Run.
+// Handle ep0 control requests
 bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                  struct usb_raw_control_ep0_io *io)
 {
@@ -191,103 +100,97 @@ bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
         // https://github.com/torvalds/linux/blob/3d5f968a177d468cd13568ef901c5be84d83d32b/drivers/input/joystick/xpad.c#L1755
         // Ignored for now.
         return true;
-        break;
     default:
         printf("fail: no/unknown response\n");
         exit(EXIT_FAILURE);
     }
 }
 
-void ep0_single_loop(int fd)
+pthread_t ep0_thread;
+void *ep0_loop(void *arg)
 {
-    // ep0 logic, should be run in an event loop
-    struct usb_raw_control_ep0_event event;
-    event.inner.type = 0;
-    event.inner.length = sizeof(event.ctrl);
-
-    // Fetch event and log it.
-    usb_raw_event_fetch(fd, (struct usb_raw_event *)&event);
-    log_event((struct usb_raw_event *)&event);
-
-    // Most likely, first event will be the connect event
-    if (event.inner.type == USB_RAW_EVENT_CONNECT_)
-    {
-        process_eps_info(fd);
-        return;
-    }
-
-    // If the event == reset, stop the thread running the interrupt endpoint
-    if (event.inner.type == USB_RAW_EVENT_RESET_)
-    {
-        if (ep_int_enabled)
-        {
-            printf("ep0: disabling ep1 IN\n");
-            // On reset, disable the interrupt endpoint
-            usb_raw_ep_disable(fd, ep_int_in);
-            ep_int_enabled = false;
-            printf("ep0: disabled ep1 IN\n");
-        }
-        return;
-    }
-
-    if (event.inner.type != USB_RAW_EVENT_CONTROL_)
-        // No new control event at ep0, continue to next event
-        return;
-
-    struct usb_raw_control_ep0_io io;
-    io.inner.ep = 0;
-    io.inner.flags = 0;
-    io.inner.length = 0;
-
-    bool reply = ep0_request(fd, &event, &io);
-    if (!reply)
-    {
-        printf("ep0: stalling\n");
-        usb_raw_ep0_stall(fd);
-        return;
-    }
-
-    if (event.ctrl.wLength < io.inner.length)
-        io.inner.length = event.ctrl.wLength;
-
-    if (event.ctrl.bRequestType & USB_DIR_IN)
-    {
-        int rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io *)&io);
-        printf("ep0: transferred %d bytes (in)\n", rv);
-    }
-    else
-    {
-        int rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io *)&io);
-        printf("ep0: transferred %d bytes (out)\n", rv);
-    }
-}
-
-void ep0_loop_example(int fd)
-{
+    // Loop to handle the control endpoint
+    // This is put in a separate thread as sometimes the control endpoint is IO blocked/halts entire program
+    int fd = (int)(long)arg;
     while (true)
     {
-        ep0_single_loop(fd);
-        // USB usually has a 1ms polling rate, so sleep for a little less than that
-        usleep(900);
+        // ep0 logic, should be run in an event loop
+        struct usb_raw_control_ep0_event event;
+        event.inner.type = 0;
+        event.inner.length = sizeof(event.ctrl);
 
-        if (ep_int_enabled)
+        // Fetch event and log it.
+        usb_raw_event_fetch(fd, (struct usb_raw_event *)&event);
+        log_event((struct usb_raw_event *)&event);
+
+        // Most likely, first event will be the connect event
+        if (event.inner.type == USB_RAW_EVENT_CONNECT_)
         {
-            // Send A button press to the interrupt endpoint
-            send_to_ep1(fd, "\x00\x14\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 20);
+            process_eps_info(fd);
+            continue;
+        }
+
+        // If the event == reset, stop the thread running the interrupt endpoint
+        if (event.inner.type == USB_RAW_EVENT_RESET_)
+        {
+            // if (ep_int_in_thread_spawned)
+            if (ep_int_enabled)
+            {
+                printf("ep0: disabling ep1 IN\n");
+                // On reset, disable the interrupt endpoint
+                usb_raw_ep_disable(fd, ep_int_in);
+                ep_int_enabled = false;
+                printf("ep0: disabled ep1 IN\n");
+            }
+            continue;
+        }
+
+        if (event.inner.type != USB_RAW_EVENT_CONTROL_)
+            // No new control event at ep0, continue to next event
+            continue;
+
+        struct usb_raw_control_ep0_io io;
+        io.inner.ep = 0;
+        io.inner.flags = 0;
+        io.inner.length = 0;
+
+        bool reply = ep0_request(fd, &event, &io);
+        if (!reply)
+        {
+            printf("ep0: stalling\n");
+            usb_raw_ep0_stall(fd);
+            continue;
+        }
+
+        if (event.ctrl.wLength < io.inner.length)
+            io.inner.length = event.ctrl.wLength;
+
+        if (event.ctrl.bRequestType & USB_DIR_IN)
+        {
+            int rv = usb_raw_ep0_write(fd, (struct usb_raw_ep_io *)&io);
+            printf("ep0: transferred %d bytes (in)\n", rv);
+        }
+        else
+        {
+            int rv = usb_raw_ep0_read(fd, (struct usb_raw_ep_io *)&io);
+            printf("ep0: transferred %d bytes (out)\n", rv);
         }
     }
 }
 
-int main(int argc, char **argv)
+// PUBLIC FUNCTIONS
+bool gadget_initialized = false;
+int init_360_gadget()
 {
+    // Initialize the USB device
     /*Overall USB flow;
-    - Open the raw-gadget device
-    - Get the device descriptor
-    - Give the device an address (UDC will handle this)
-    - get the configuration descriptor
-    - get the string descriptor
-    - set interface to work with
-    - set configuration to work with
+        - Open the raw-gadget device
+        - Get the device descriptor
+        - Give the device an address (UDC will handle this)
+        - get the configuration descriptor
+        - get the string descriptor
+        - set interface to work with
+        - set configuration to work with
     */
 
     // Default device and driver
@@ -302,11 +205,101 @@ int main(int argc, char **argv)
     usb_raw_init(fd, USB_SPEED_HIGH, driver, device);
     // Send OP '0' to initialize the device
     usb_raw_run(fd);
+    // Start the ep0 loop
+    // Spawn ep0
+    int rv = pthread_create(&ep0_thread, 0, ep0_loop, (void *)(long)fd);
+    if (rv != 0)
+    {
+        perror("pthread_create(ep0)");
+        exit(EXIT_FAILURE);
+    }
 
-    // Run the loop to handle the USB events
-    ep0_loop_example(fd);
+    gadget_initialized = true;
 
-    close(fd);
+    return fd;
+}
 
-    return 0;
+void close_360_gadget(int fd)
+{
+    if (gadget_initialized)
+    {
+        // Cancel the ep0 thread
+        int rv = pthread_cancel(ep0_thread);
+        if (rv != 0)
+        {
+            perror("pthread_cancel(ep0)");
+            exit(EXIT_FAILURE);
+        }
+        // Close the file descriptor
+        close(fd);
+    }
+}
+
+// Endpoint addr (- = first available?)
+int ep_int_in = -1;
+// Endpoint control block
+bool ep_int_enabled = false;
+bool send_to_ep1(int fd, char *data, int len)
+{
+    if (!ep_int_enabled)
+    {
+        printf("ep_int_in not enabled / available\n");
+        return false;
+    }
+    struct usb_raw_interrupt_ep1_io io;
+    io.inner.ep = ep_int_in;
+    io.inner.flags = 0;
+    io.inner.length = len;
+    printf("ep_int_in: sending %d bytes\n", len);
+    memcpy(&io.inner.data[0], data, len);
+    int rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
+    if (rv < 0)
+    {
+        perror("usb_raw_ep_write_may_fail()");
+        return false;
+    }
+    return true;
+}
+
+void gadget_example()
+{
+    int fd = init_360_gadget();
+
+    // Event loop
+    int time_passed = 0;
+    char *a_packet = "\x00\x14\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+    char *blank_packet = "\x00\x14\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+    bool a_pressed = false;
+    while (true)
+    {
+
+        // USB usually has a 1ms polling rate, so sleep for a little less than that
+        usleep(900);
+        time_passed += 1;
+
+        if (ep_int_enabled && time_passed >= 1000)
+        {
+            printf("INPUT ENABLED - SENDING DATA\n");
+            if (a_pressed)
+            {
+                // Send a blank packet to the interrupt endpoint
+                send_to_ep1(fd, blank_packet, 20);
+                a_pressed = false;
+            }
+            else
+            {
+                // Send A button press to the interrupt endpoint
+                send_to_ep1(fd, a_packet, 20);
+                a_pressed = true;
+            }
+            time_passed = 0;
+        }
+    }
+
+    close_360_gadget(fd);
+}
+
+int main(int argc, char **argv)
+{
+    gadget_example();
 }

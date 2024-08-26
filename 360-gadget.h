@@ -10,6 +10,7 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/raw_gadget.h>
 
+#include <pthread.h>
 #include "usb_helpers.h"
 
 // Driver and device names depend on the hardware
