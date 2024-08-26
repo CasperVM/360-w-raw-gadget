@@ -1,5 +1,10 @@
 #include "360-gadget.h"
 
+// Endpoint addr (- = first available?)
+int ep_int_in = -1;
+// Endpoint control block
+bool ep_int_enabled = false;
+
 // Handle ep0 control requests
 bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                  struct usb_raw_control_ep0_io *io)
@@ -235,10 +240,6 @@ void close_360_gadget(int fd)
     }
 }
 
-// Endpoint addr (- = first available?)
-int ep_int_in = -1;
-// Endpoint control block
-bool ep_int_enabled = false;
 bool send_to_ep1(int fd, char *data, int len)
 {
     if (!ep_int_enabled)
@@ -279,15 +280,16 @@ void gadget_example()
 
         if (ep_int_enabled && time_passed >= 1000)
         {
-            printf("INPUT ENABLED - SENDING DATA\n");
             if (a_pressed)
             {
+                print("A DOWN\n");
                 // Send a blank packet to the interrupt endpoint
                 send_to_ep1(fd, blank_packet, 20);
                 a_pressed = false;
             }
             else
             {
+                print("NO INPUT\n");
                 // Send A button press to the interrupt endpoint
                 send_to_ep1(fd, a_packet, 20);
                 a_pressed = true;
