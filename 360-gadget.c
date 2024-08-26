@@ -309,8 +309,3 @@ void gadget_example()
 
     close_360_gadget(fd);
 }
-
-int main(int argc, char **argv)
-{
-    gadget_example();
-}

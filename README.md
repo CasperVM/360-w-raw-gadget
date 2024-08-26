@@ -53,15 +53,19 @@ To run the gadget, you need to load the kernel module for raw-gadget and then ru
 
 For the raw-gadget module, you can follow the instructions in the raw-gadget repo, e.g. for raspberry pi's: [setup_raspberry-pi.md](https://github.com/xairy/raw-gadget/blob/master/docs/setup_raspberry-pi.md)
 
-After loading the module, you can run the gadget binary:
+After loading the module, you can run the gadget example binary:
 
 ```bash
-sudo ./360-raw-gadget
+sudo ./example
 ```
 
 This will run the example function, which activates the A button every second.
 
 For more input control, take a look at the `partsnotincluded` link in the sources section.
+
+## Static lib
+
+If you want to use this in other projects, you can edit the makefile `CFLAGS`. More info the makefile.
 
 ## TODO:
 

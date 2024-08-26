@@ -91,7 +91,7 @@
 #endif // USB_GADGET_CONFIG_H
 
 // Available functions
-int init_360_gadget(bool await_endpoint_availability);
-void close_360_gadget(int fd);
-bool send_to_ep1(int fd, char *data, int len);
-void gadget_example();
+extern int init_360_gadget(bool await_endpoint_availability);
+extern void close_360_gadget(int fd);
+extern bool send_to_ep1(int fd, char *data, int len);
+extern void gadget_example();

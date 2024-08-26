@@ -1,16 +1,23 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: MIT
 
 CC=gcc
-CFLAGS=-O2 -Wall -g
+# Uncomment the -DHW_* flag to compile for a specific hardware if you want to have it as a static library.
+# then run `make clean` and `make`.
+CFLAGS=-O2 -Wall -g # -DHW_RPI4
 LDFLAGS = -lpthread
 
-SRCS = 360-gadget.c usb_descriptors.c usb_io.c usb_helpers.c
+SRCS = 360-gadget.c usb_descriptors.c usb_io.c usb_helpers.c example.c
 OBJS = $(SRCS:.c=.o)
-TARGET = 360-gadget
+TARGET = example
+STATIC_LIB = lib360gadget.a
 
+all: $(TARGET) $(STATIC_LIB)
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $(OBJS) $(CFLAGS) $(LDFLAGS)
+
+$(STATIC_LIB): $(OBJS)
+	ar rcs $@ $(OBJS)
 
 .PHONY: rpi4
 rpi4: 
@@ -65,4 +72,4 @@ generic:
 	$(MAKE) CFLAGS="$(CFLAGS) -DHW_GENERIC" $(TARGET)
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(TARGET) $(STATIC_LIB)
