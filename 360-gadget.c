@@ -185,7 +185,7 @@ void *ep0_loop(void *arg)
 
 // PUBLIC FUNCTIONS
 bool gadget_initialized = false;
-int init_360_gadget()
+int init_360_gadget(bool await_endpoint_availability)
 {
     // Initialize the USB device
     /*Overall USB flow;
@@ -220,6 +220,15 @@ int init_360_gadget()
     }
 
     gadget_initialized = true;
+
+    if (await_endpoint_availability)
+    {
+        // Wait for the interrupt endpoint to be available
+        while (!ep_int_enabled)
+        {
+            usleep(1000);
+        }
+    }
 
     return fd;
 }
@@ -264,7 +273,7 @@ bool send_to_ep1(int fd, char *data, int len)
 
 void gadget_example()
 {
-    int fd = init_360_gadget();
+    int fd = init_360_gadget(true);
 
     // Event loop
     int time_passed = 0;
@@ -282,14 +291,14 @@ void gadget_example()
         {
             if (a_pressed)
             {
-                print("A DOWN\n");
+                printf("A DOWN\n");
                 // Send a blank packet to the interrupt endpoint
                 send_to_ep1(fd, blank_packet, 20);
                 a_pressed = false;
             }
             else
             {
-                print("NO INPUT\n");
+                printf("NO INPUT\n");
                 // Send A button press to the interrupt endpoint
                 send_to_ep1(fd, a_packet, 20);
                 a_pressed = true;

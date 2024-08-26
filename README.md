@@ -1,7 +1,7 @@
 # 360-raw-gadget
 360 controller raw USB gadget. (WIP)
 
-Initially tried using functionfs in both python and Rust, but this only worked on *nix hosts.
+Initially tried this using functionfs in both python and Rust, but this only worked on *nix hosts.
 The reason for this is that functionfs/gadgetfs only allows for well-defined USB classes/well-formed descriptors.
 After the interface descriptor, windows expects a vendor-specific descriptor, which is not supported by functionfs.
 
@@ -47,17 +47,32 @@ For the Raspberry Pi Zero / Zero 2, you can use the default target:
 make
 ```
 
+## Running
+
+To run the gadget, you need to load the kernel module for raw-gadget and then run the gadget binary.
+
+For the raw-gadget module, you can follow the instructions in the raw-gadget repo, e.g. for raspberry pi's: [setup_raspberry-pi.md](https://github.com/xairy/raw-gadget/blob/master/docs/setup_raspberry-pi.md)
+
+After loading the module, you can run the gadget binary:
+
+```bash
+sudo ./360-raw-gadget
+```
+
+This will run the example function, which activates the A button every second.
+
+For more input control, take a look at the `partsnotincluded` link in the sources section.
+
 ## TODO:
 
 - [ ] Implement ep1 (output) for rumble
-- [ ] Rust bindings
-- [ ] Other endpoints (for audio, etc.)?
+- [ ] Other endpoints (for audio, leds, etc.)?
 
 ## Sources
 
 useful links/sources:
 
-- [360 usb data explainer](https://www.partsnotincluded.com/understanding-the-xbox-360-wired-controllers-usb-data/)
+- [(partsnotincluded.COM) 360 usb data explainer](https://www.partsnotincluded.com/understanding-the-xbox-360-wired-controllers-usb-data/)
 - [usb raw gadget repo](https://github.com/xairy/raw-gadget)
 
 
