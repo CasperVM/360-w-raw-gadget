@@ -1,20 +1,64 @@
 # 360-raw-gadget
-360 controller raw USB gadget attempt.
+360 controller raw USB gadget. (WIP)
 
 Initially tried using functionfs in both python and Rust, but this only worked on *nix hosts.
 The reason for this is that functionfs/gadgetfs only allows for well-defined USB classes/well-formed descriptors.
-After the interface descriptor, windows presumably expects a vendor-specific descriptor, which is not supported by functionfs.
+After the interface descriptor, windows expects a vendor-specific descriptor, which is not supported by functionfs.
 
-Thus, we'll try to use raw-gadget + c at least for emulating the controller.
+Thus, we're using raw-gadget + c here.
 
 (First project using C, so don't judge too hard)
 
-# Sources
+## Functionality
+
+For now only the input endpoint is implemented, which allows for controller input to be sent to the host.
+
+## Building for Specific Hardware
+
+This project supports a range of hardware configurations, as listed below. You can build the project for your specific device using the appropriate make target.
+
+| Hardware                           | Build Target            | Driver           | Device                  |
+| ---------------------------------- | ----------------------- | ---------------- | ----------------------- |
+| Raspberry Pi Zero (default target) | `make`                  | `20980000.usb`   | `20980000.usb` (dwc2)   |
+| Raspberry Pi 4                     | `make rpi4`             | `fe980000.usb`   | `fe980000.usb` (dwc2)   |
+| Raspberry Pi 5                     | `make rpi5`             | `1000480000.usb` | `1000480000.usb` (dwc2) |
+| USB Armory Mk II                   | `make usb-armory-mk2`   | `2184000.usb`    | `ci_hdrc.0`             |
+| Orange Pi PC                       | `make orange-pi-pc`     | `musb-hdrc`      | `musb-hdrc.4.auto`      |
+| Khadas VIM1                        | `make khadas-vim1`      | `c9100000.usb`   | `c9100000.usb`          |
+| ThinkPad X1 Carbon Gen 6           | `make thinkpad-x1`      | `dwc3-gadget`    | `dwc3.1.auto`           |
+| NXP i.MX8MP                        | `make nxp-imx8mp`       | `dwc3-gadget`    | `38100000.usb`          |
+| BeagleBone Black                   | `make beaglebone-black` | `musb-hdrc`      | `musb-hdrc.0`           |
+| BeagleBone AI                      | `make beaglebone-ai`    | `dwc3-gadget`    | `48380000.usb`          |
+| EC3380-AB                          | `make ec3380-ab`        | `net2280`        | `0000:04:00.0`          |
+| Odroid C2                          | `make odroid-c2`        | `dwc_otg_pcd`    | `dwc2_a`                |
+| Generic hardware                   | `make generic`          | `dummy_udc`      | `dummy_udc.0`           |
+
+(Table is taken from the [raw-gadget](https://github.com/xairy/raw-gadget?tab=readme-ov-file#usb-device-controllers) repository)
+
+To build for your device, use the corresponding target, for example:
+
+```bash
+make rpi4
+```
+
+For the Raspberry Pi Zero / Zero 2, you can use the default target:
+
+```bash
+make
+```
+
+## TODO:
+
+- [ ] Implement ep1 (output) for rumble
+- [ ] Rust bindings
+- [ ] Other endpoints (for audio, etc.)?
+
+## Sources
 
 useful links/sources:
 
-- [360 usb data explainer](https://www.partsnotincluded.com/understanding-the-xbox-360-wired-controllers-usb-data/) 
- -[usb raw gadget repo](https://github.com/xairy/raw-gadget)
+- [360 usb data explainer](https://www.partsnotincluded.com/understanding-the-xbox-360-wired-controllers-usb-data/)
+- [usb raw gadget repo](https://github.com/xairy/raw-gadget)
 
 
 More sources (old):
