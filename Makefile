@@ -3,7 +3,7 @@
 CC=gcc
 # Uncomment the -DHW_* flag to compile for a specific hardware if you want to have it as a static library.
 # then run `make clean` and `make`.
-CFLAGS=-O2 -Wall -g # -DHW_RPI4
+CFLAGS=-O2 -Wall -g -fPIE # -DHW_RPI4
 LDFLAGS = -lpthread
 
 SRCS = 360-gadget.c usb_descriptors.c usb_io.c usb_helpers.c example.c
