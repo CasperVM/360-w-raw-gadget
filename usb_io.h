@@ -13,7 +13,7 @@
 #include <linux/usb/raw_gadget.h>
 
 // Max sizes
-#define EP0_MAX_DATA 256
+#define EP0_MAX_DATA 512
 // EP1, control surface -> 32 bytes max. (in actuality, 20 bytes get sent)
 #define EP1_MAX_PACKET_INT __constant_cpu_to_le16(0x0020)
 

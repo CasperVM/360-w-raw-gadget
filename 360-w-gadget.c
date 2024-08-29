@@ -72,7 +72,8 @@ bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                 }
             default:
                 printf("fail: no/unknown descriptor response\n");
-                exit(EXIT_FAILURE);
+                // exit(EXIT_FAILURE);
+                return true;
             }
             break;
         case USB_REQ_SET_CONFIGURATION:
