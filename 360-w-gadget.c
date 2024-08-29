@@ -2,6 +2,7 @@
 
 // Endpoint addr (- = first available?)
 int ep_int_in = -1;
+int ep_int_in2 = -1;
 // Endpoint control block
 bool ep_int_enabled = false;
 
@@ -82,10 +83,22 @@ bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
             printf("event->ctrl.wValue: %d\n", event->ctrl.wValue);
             ep_int_in = usb_raw_ep_enable(fd, &usb_if0_ep1_in);
             printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
+            
+            
+
+            // ep data 2?..
+            struct usb_endpoint_descriptor usb_if2_ep3_in = usb_if0_ep1_in;
+            usb_if2_ep3_in.bEndpointAddress = IF2_UD_EP_IN;
+            ep_int_in2 = usb_raw_ep_enable(fd, &usb_if2_ep3_in);
+
             ep_int_enabled = true;
+
+
             usb_raw_vbus_draw(fd, usb_config.bMaxPower);
             usb_raw_configure(fd);
             io->inner.length = 0;
+            
+
             return true;
         case USB_REQ_GET_INTERFACE:
             io->data[0] = usb_if0.bAlternateSetting;
@@ -268,6 +281,28 @@ bool send_to_ep1(int fd, char *data, int len)
     return true;
 }
 
+bool send_to_ep2(int fd, char *data, int len)
+{
+    if (!ep_int_enabled)
+    {
+        printf("ep_int_in 2 not enabled / available\n");
+        return false;
+    }
+    struct usb_raw_interrupt_ep1_io io;
+    io.inner.ep = ep_int_in2;
+    io.inner.flags = 0;
+    io.inner.length = len;
+    printf("ep_int_in2: sending %d bytes\n", len);
+    memcpy(&io.inner.data[0], data, len);
+    int rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
+    if (rv < 0)
+    {
+        perror("usb_raw_ep_write_may_fail()");
+        return false;
+    }
+    return true;
+}
+
 void gadget_example()
 {
     // TODO: fix? Never captured input from this receiver, might be expecting different packets?
@@ -292,6 +327,7 @@ void gadget_example()
                 printf("A DOWN\n");
                 // Send a blank packet to the interrupt endpoint
                 send_to_ep1(fd, blank_packet, 20);
+                send_to_ep2(fd, blank_packet, 20);
                 a_pressed = false;
             }
             else
@@ -299,6 +335,8 @@ void gadget_example()
                 printf("NO INPUT\n");
                 // Send A button press to the interrupt endpoint
                 send_to_ep1(fd, a_packet, 20);
+                send_to_ep2(fd, a_packet, 20);
+                
                 a_pressed = true;
             }
             time_passed = 0;
