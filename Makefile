@@ -7,7 +7,9 @@ CFLAGS=-O2 -Wall -g -fPIE # -DHW_RPI4
 LDFLAGS = -lpthread
 
 SRCS = 360-gadget.c usb_descriptors.c usb_io.c usb_helpers.c example.c
+SRCS_LIB = 360-gadget.c usb_descriptors.c usb_io.c usb_helpers.c
 OBJS = $(SRCS:.c=.o)
+OBJS_LIB = $(SRCS_LIB:.c=.o)
 TARGET = example
 STATIC_LIB = lib360gadget.a
 
@@ -16,8 +18,8 @@ all: $(TARGET) $(STATIC_LIB)
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $(OBJS) $(CFLAGS) $(LDFLAGS)
 
-$(STATIC_LIB): $(OBJS)
-	ar rcs $@ $(OBJS)
+$(STATIC_LIB): $(OBJS_LIB)
+	ar rcs $@ $(OBJS_LIB)
 
 .PHONY: rpi4
 rpi4: 
