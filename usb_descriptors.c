@@ -52,7 +52,7 @@ struct usb_interface_descriptor usb_if0 = {
     .bNumEndpoints = 0x02,   // 2 endpoints
     .bInterfaceClass = 0xFF, // Vendor specific
     .bInterfaceSubClass = 0x5D,
-    .bInterfaceProtocol = 0x81,
+    .bInterfaceProtocol = 0x01,
     .iInterface = 0x00,
 };
 
@@ -87,7 +87,7 @@ struct usb_endpoint_descriptor usb_if0_ep1_in = {
     .bEndpointAddress = USB_DIR_IN | IF0_EP_ADDR,    // Bitwise OR, so 0x81
     .bmAttributes = USB_ENDPOINT_XFER_INT,            // Interrupt endpoint.
     .wMaxPacketSize = __constant_cpu_to_le16(0x0020), // 32 bytes
-    .bInterval = 0x01,
+    .bInterval = 0x04,
 };
 // IF0_EP1_OUT; Interrupt data
 struct usb_endpoint_descriptor usb_if0_ep1_out = {
