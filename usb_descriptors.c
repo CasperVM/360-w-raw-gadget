@@ -81,7 +81,6 @@ struct if_unknown_desc_control_surface if0_ud = {
 };
 
 // IF0_EP1_IN; Interrupt data
-#define IF0_EP_ADDR 0x01 // Endpoint number
 struct usb_endpoint_descriptor usb_if0_ep1_in = {
     .bLength = USB_DT_ENDPOINT_SIZE,
     .bDescriptorType = USB_DT_ENDPOINT,
@@ -131,7 +130,6 @@ struct if_unknown_desc_audio_surface if1_ud = {
 };
 
 // IF1_EP2_IN; Microphone data send
-#define IF1_EP_ADDR 0x02
 struct usb_endpoint_descriptor usb_if1_ep2_in = {
     .bLength = USB_DT_ENDPOINT_SIZE,
     .bDescriptorType = USB_DT_ENDPOINT,
@@ -151,38 +149,3 @@ struct usb_endpoint_descriptor usb_if1_ep2_out = {
 };
 // IF1 END //
 
-// IF2; Control data(2)
-#define IF2_INTERFACE_NUMBER 0x02
-#define IF2_EP_ADDR = 0x03
-#define IF2_UD_EP_IN = USB_DIR_IN | IF2_EP_ADDR
-#define IF2_UD_EP_OUT = USB_DIR_OUT | IF2_EP_ADDR
-
-// IF3; Audio data(2)
-#define IF3_INTERFACE_NUMBER 0x03
-#define IF3_EP_ADDR = 0x04
-#define IF3_UD_EP_IN = USB_DIR_IN | IF3_EP_ADDR
-#define IF3_UD_EP_OUT = USB_DIR_OUT | IF3_EP_ADDR
-
-// IF4; Control data(3)
-#define IF4_INTERFACE_NUMBER 0x04
-#define IF4_EP_ADDR = 0x05
-#define IF4_UD_EP_IN = USB_DIR_IN | IF4_EP_ADDR
-#define IF4_UD_EP_OUT = USB_DIR_OUT | IF4_EP_ADDR
-
-// IF5; Audio data(3)
-#define IF5_INTERFACE_NUMBER 0x05
-#define IF5_EP_ADDR = 0x06
-#define IF5_UD_EP_IN = USB_DIR_IN | IF5_EP_ADDR
-#define IF5_UD_EP_OUT = USB_DIR_OUT | IF5_EP_ADDR
-
-// IF6; Control data(4)
-#define IF6_INTERFACE_NUMBER 0x06
-#define IF6_EP_ADDR = 0x07
-#define IF6_UD_EP_IN = USB_DIR_IN | IF6_EP_ADDR
-#define IF6_UD_EP_OUT = USB_DIR_OUT | IF6_EP_ADDR
-
-// IF7; Audio data(4)
-#define IF7_INTERFACE_NUMBER 0x07
-#define IF7_EP_ADDR = 0x08
-#define IF7_UD_EP_IN = USB_DIR_IN | IF7_EP_ADDR
-#define IF7_UD_EP_OUT = USB_DIR_OUT | IF7_EP_ADDR

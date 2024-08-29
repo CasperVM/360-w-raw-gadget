@@ -6,8 +6,8 @@ CC=gcc
 CFLAGS=-O2 -Wall -g -fPIE # -DHW_RPI4
 LDFLAGS = -lpthread
 
-SRCS = 360-gadget.c usb_descriptors.c usb_io.c usb_helpers.c example.c
-SRCS_LIB = 360-gadget.c usb_descriptors.c usb_io.c usb_helpers.c
+SRCS = 360-w-gadget.c usb_descriptors.c usb_io.c usb_helpers.c example.c
+SRCS_LIB = 360-w-gadget.c usb_descriptors.c usb_io.c usb_helpers.c 
 OBJS = $(SRCS:.c=.o)
 OBJS_LIB = $(SRCS_LIB:.c=.o)
 TARGET = example

@@ -1,4 +1,4 @@
-#include "360-gadget.h"
+#include "360-w-gadget.h"
 
 // Endpoint addr (- = first available?)
 int ep_int_in = -1;
@@ -62,18 +62,14 @@ bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                     break;
                 case STRING_ID_PRODUCT:
                     // Product string descriptor
-                    set_usb_string_desc("Controller", io);
+                    set_usb_string_desc("Xbox 360 Wireless Receiver for Windows", io);
                     break;
                 case STRING_ID_SERIAL:
                     // Serial number string descriptor
-                    set_usb_string_desc("08FEC93", io);
+                    set_usb_string_desc("08FEC93", io); // TODO: Never gets asked from host?
                     break;
-                case STRING_ID_IF3:
-                    // Interface 3 string descriptor
-                    set_usb_string_desc("Xbox Security Method 3, Version 1.00, © 2005 Microsoft Corporation. All rights reserved.", io);
-                    break;
-                }
                 return true;
+                }
             default:
                 printf("fail: no/unknown descriptor response\n");
                 exit(EXIT_FAILURE);
@@ -273,6 +269,7 @@ bool send_to_ep1(int fd, char *data, int len)
 
 void gadget_example()
 {
+    // TODO: fix? Never captured input from this receiver, might be expecting different packets?
     int fd = init_360_gadget(true);
 
     // Event loop
