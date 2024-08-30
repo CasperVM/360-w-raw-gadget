@@ -273,7 +273,16 @@ bool send_to_ep(int fd, int n, char *data, int len)
         return false;
     }
     struct if_full_struct interface_x = get_if_x(n);
-    int ep_int_in = usb_endpoint_num(&interface_x.ep_in);
+    
+    // FIXME: `usb_endpoint_num` does NOT return the correct address?
+    // int ep_int_in = usb_endpoint_num(&interface_x.ep_in);
+
+    // Lets for now infer the endpoint address (0, 2, 4...)
+    // That at least seems to be how these are assigned;
+    // I'm to lazy to retrieve it properly from the `usb_raw_ep_enable`
+
+    int ep_int_in = n*2;
+
     struct usb_raw_interrupt_ep_io io;
     io.inner.ep = ep_int_in;
     io.inner.flags = 0;
@@ -291,7 +300,12 @@ bool send_to_ep(int fd, int n, char *data, int len)
 
 bool set_n_interfaces(int n)
 {
-    // TODO: SET MAX
+    // 4 Seems to be the hard limit with this device, otherwise USB_RAW_IOCTL_EP_WRITE will stall.
+    // Possibly driver ignoring input? / Maybe the custom vendor descriptor would need changing?
+    if (n < 1 || n > 4) {
+        return false;
+    }
+        
     n_interfaces = n;
     return true;
 }
@@ -324,7 +338,6 @@ void gadget_example()
                 for (i = 0; i < n_interfaces; i++)
                 {
                     send_to_ep(fd, i, blank_packet, 20);
-                    usleep(1000);
                 }
 
                 a_pressed = false;
@@ -337,8 +350,6 @@ void gadget_example()
                 for (i = 0; i < n_interfaces; i++)
                 {
                     send_to_ep(fd, i, a_packet, 20);
-                    usleep(1000);
-                    sleep(1);
                 }
 
                 a_pressed = true;
