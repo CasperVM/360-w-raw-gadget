@@ -312,6 +312,7 @@ bool send_to_ep(int fd, int n, char *data, int len)
 
 unsigned char *receive_from_ep(int fd, int n, int len)
 {
+    // TODO; fix and run in thread -> this is a blocking operation until we receive packets.
     if (!ep_int_enabled)
     {
         printf("ep_int_in not enabled / available\n");
@@ -385,12 +386,13 @@ void gadget_example()
 
                 a_pressed = true;
             }
-            int i;
-            for (i = 0; i < n_interfaces; i++)
-            {
-                unsigned char *somedata = receive_from_ep(fd, i, 8);
-                printf("receiver some data; %s", somedata);
-            }
+            // todo/fixme;
+            // int i;
+            // for (i = 0; i < n_interfaces; i++)
+            // {
+            //     unsigned char *somedata = receive_from_ep(fd, i, 8);
+            //     printf("receiver some data; %s", somedata);
+            // }
             time_passed = 0;
         }
     }
