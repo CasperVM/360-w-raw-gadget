@@ -3,9 +3,6 @@
 // Endpoint control block
 bool ep_int_enabled = false;
 
-int ep_int_in = -1;
-int ep_int_in2 = -1;
-
 // Handle ep0 control requests
 bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                  struct usb_raw_control_ep0_io *io)
@@ -85,17 +82,9 @@ bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
             for (i = 0; i < n_interfaces; i++)
             {
                 struct if_full_struct interface_x = get_if_x(i);
-                printf("trying to enable ep; %d\n", interface_x.ep_in.bEndpointAddress);
                 // ep in
-                if (i == 0) {
-                    ep_int_in = usb_raw_ep_enable(fd, &interface_x.ep_in);
-                    printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
-                } else {
-                    ep_int_in2 = usb_raw_ep_enable(fd, &interface_x.ep_in);
-                    printf("ep0: ep_int_in enabled: %d\n", ep_int_in2);
-                }
-                
-                // printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
+                int ep_int_in = usb_raw_ep_enable(fd, &interface_x.ep_in);
+                printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
                 // // ep out
                 // int ep_int_out = usb_raw_ep_enable(fd, &interface_x.ep_out);
                 // printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
@@ -284,26 +273,21 @@ bool send_to_ep(int fd, int n, char *data, int len)
         return false;
     }
     struct if_full_struct interface_x = get_if_x(n);
+    
+    // FIXME: `usb_endpoint_num` does NOT return the correct address?
+    // int ep_int_in = usb_endpoint_num(&interface_x.ep_in);
 
+    // Lets for now infer the endpoint address (0, 2, 4...)
+    // That at least seems to be how these are assigned;
+    // I'm to lazy to retrieve it properly from the `usb_raw_ep_enable`
 
-    // DISABLED
-    int x = usb_endpoint_num(&interface_x.ep_in);
-    printf("retrieved an addr; %d\n", x );
+    int ep_int_in = n*2;
 
     struct usb_raw_interrupt_ep_io io;
-    if (n == 0) {
-        io.inner.ep = ep_int_in;
-        printf("ep_int_in: sending %d bytes for interface %d with addr %d \n", len, n, ep_int_in);
-    } else {
-        io.inner.ep = ep_int_in2;
-        printf("ep_int_in: sending %d bytes for interface %d with addr %d \n", len, n, ep_int_in2);
-    }
-
-    
-    // io.inner.ep = ep_int_in;
+    io.inner.ep = ep_int_in;
     io.inner.flags = 0;
     io.inner.length = len;
-    // printf("ep_int_in: sending %d bytes for interface %d with addr %d \n", len, n, ep_int_in);
+    printf("ep_int_in: sending %d bytes for interface %d with addr %d \n", len, n, ep_int_in);
     memcpy(&io.inner.data[0], data, len);
     int rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
     if (rv < 0)
@@ -316,7 +300,12 @@ bool send_to_ep(int fd, int n, char *data, int len)
 
 bool set_n_interfaces(int n)
 {
-    // TODO: SET MAX
+    // 4 Seems to be the hard limit with this device, otherwise USB_RAW_IOCTL_EP_WRITE will stall.
+    // Possibly driver ignoring input? / Maybe the custom vendor descriptor would need changing?
+    if (n < 1 || n > 4) {
+        return false;
+    }
+        
     n_interfaces = n;
     return true;
 }
@@ -324,7 +313,7 @@ bool set_n_interfaces(int n)
 void gadget_example()
 {
     // Set the amount of interfaces
-    set_n_interfaces(2);
+    set_n_interfaces(4);
     int fd = init_360_gadget(true);
 
     // Event loop
@@ -349,7 +338,6 @@ void gadget_example()
                 for (i = 0; i < n_interfaces; i++)
                 {
                     send_to_ep(fd, i, blank_packet, 20);
-                    // usleep(1000);
                 }
 
                 a_pressed = false;
@@ -362,8 +350,6 @@ void gadget_example()
                 for (i = 0; i < n_interfaces; i++)
                 {
                     send_to_ep(fd, i, a_packet, 20);
-                    // usleep(1000);
-                    // sleep(1);
                 }
 
                 a_pressed = true;
