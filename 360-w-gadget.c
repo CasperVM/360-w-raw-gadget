@@ -85,9 +85,9 @@ bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                 // ep in
                 int ep_int_in = usb_raw_ep_enable(fd, &interface_x.ep_in);
                 printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
-                // ep out
-                int ep_int_out = usb_raw_ep_enable(fd, &interface_x.ep_out);
-                printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
+                // // ep out
+                // int ep_int_out = usb_raw_ep_enable(fd, &interface_x.ep_out);
+                // printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
             }
             ep_int_enabled = true;
             // Power settings
@@ -156,10 +156,10 @@ void *ep0_loop(void *arg)
                     int ep_int_in = usb_endpoint_num(&interface_x.ep_in);
                     usb_raw_ep_disable(fd, ep_int_in);
                     printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
-                    // ep out
-                    int ep_int_out = usb_endpoint_num(&interface_x.ep_out);
-                    usb_raw_ep_disable(fd, ep_int_out);
-                    printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
+                    // // ep out
+                    // int ep_int_out = usb_endpoint_num(&interface_x.ep_out);
+                    // usb_raw_ep_disable(fd, ep_int_out);
+                    // printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
                 }
                 ep_int_enabled = false;
             }
@@ -278,7 +278,7 @@ bool send_to_ep(int fd, int n, char *data, int len)
     io.inner.ep = ep_int_in;
     io.inner.flags = 0;
     io.inner.length = len;
-    printf("ep_int_in: sending %d bytes\n", len);
+    printf("ep_int_in: sending %d bytes for interface %d with addr %d \n", len, n, ep_int_in);
     memcpy(&io.inner.data[0], data, len);
     int rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
     if (rv < 0)
@@ -324,6 +324,7 @@ void gadget_example()
                 for (i = 0; i < n_interfaces; i++)
                 {
                     send_to_ep(fd, i, blank_packet, 20);
+                    usleep(1000);
                 }
 
                 a_pressed = false;
@@ -336,6 +337,8 @@ void gadget_example()
                 for (i = 0; i < n_interfaces; i++)
                 {
                     send_to_ep(fd, i, a_packet, 20);
+                    usleep(1000);
+                    sleep(1);
                 }
 
                 a_pressed = true;

@@ -113,24 +113,14 @@ void process_eps_info(int fd)
     for (int i = 0; i < num; i++)
     {
         struct if_full_struct current_if = get_if_x(i);
-        bool in_assigned = assign_ep_address(&info.eps[i], &current_if.ep_in);
-        if (!in_assigned)
-        {
-            printf("fail: could not assign IN endpoint: %X\n", i);
-            exit(EXIT_FAILURE);
-        }
-        bool out_assigned = assign_ep_address(&info.eps[i], &current_if.ep_out);
-        if (!out_assigned)
-        {
-            printf("fail: could not assign OUT endpoint: %X\n", i);
-            exit(EXIT_FAILURE);
-        }
+        assign_ep_address(&info.eps[i], &current_if.ep_in);
+        // assign_ep_address(&info.eps[i], &current_if.ep_out);
         int in_addr = usb_endpoint_num(&current_if.ep_in);
         assert(in_addr != 0);
         printf("ep_int_in: addr = %u\n", in_addr);
-        int out_addr = usb_endpoint_num(&current_if.ep_out);
-        assert(out_addr != 0);
-        printf("ep_int_out: addr = %u\n", out_addr);
+        // int out_addr = usb_endpoint_num(&current_if.ep_out);
+        // assert(out_addr != 0);
+        // printf("ep_int_out: addr = %u\n", out_addr);
     }
 }
 
