@@ -1,8 +1,12 @@
 #include "usb_descriptors.h"
 #include "usb_io.h"
 
+extern volatile int n_interfaces;
+
 // Helper functions
 
+// Get interface x (specify N)
+struct if_full_struct get_if_x(int N);
 // Build configuration descriptor
 int build_config(char *data, int length, bool other_speed);
 // Process non-control (not ep0) endpoints info call

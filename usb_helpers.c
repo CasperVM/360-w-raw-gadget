@@ -1,4 +1,33 @@
 #include "usb_helpers.h"
+volatile int n_interfaces = 1;
+
+struct if_full_struct get_if_x(int N)
+{
+    // Get the full interface for N
+    // Interfaces start at 0x00
+    // Endpoints start at 0x01
+
+    // TODO: set max?/validation check
+    struct usb_interface_descriptor usb_if_x = usb_if_xinput;
+    usb_if_x.bInterfaceNumber = N;
+
+    struct if_unknown_desc_control_surface if_ud_x = if_ud;
+    if_ud_x.bEndpointAddressIn = USB_DIR_IN | (N + 1);
+    if_ud_x.bEndpointAddressOut = USB_DIR_OUT | (N + 1);
+
+    struct usb_endpoint_descriptor usb_ep_in_x = usb_ep_in;
+    usb_ep_in_x.bEndpointAddress = USB_DIR_IN | (N + 1);
+
+    struct usb_endpoint_descriptor usb_ep_out_x = usb_ep_out;
+    usb_ep_out_x.bEndpointAddress = USB_DIR_OUT | (N + 1);
+
+    struct if_full_struct if_full = {
+        .interface = usb_if_x,
+        .ud = if_ud_x,
+        .ep_in = usb_ep_in_x,
+        .ep_out = usb_ep_out_x};
+    return if_full;
+}
 
 int build_config(char *data, int length, bool other_speed)
 {
@@ -8,292 +37,46 @@ int build_config(char *data, int length, bool other_speed)
         (struct usb_config_descriptor *)data;
     int total_length = 0;
 
+    // add config desc
     assert(length >= sizeof(usb_config));
     memcpy(data, &usb_config, sizeof(usb_config));
     data += sizeof(usb_config);
     length -= sizeof(usb_config);
     total_length += sizeof(usb_config);
 
-    // IF0
-    assert(length >= sizeof(usb_if0));
-    memcpy(data, &usb_if0, sizeof(usb_if0));
-    data += sizeof(usb_if0);
-    length -= sizeof(usb_if0);
-    total_length += sizeof(usb_if0);
+    // Set N interfaces..
+    int i;
+    for (i = 0; i < n_interfaces; i++)
+    {
+        struct if_full_struct interface_x = get_if_x(i);
+        // add interface
+        assert(length >= sizeof(interface_x.interface));
+        memcpy(data, &interface_x.interface, sizeof(interface_x.interface));
+        data += sizeof(interface_x.interface);
+        length -= sizeof(interface_x.interface);
+        total_length += sizeof(interface_x.interface);
+        // add unknown desc
+        assert(length >= sizeof(interface_x.ud));
+        memcpy(data, &interface_x.ud, sizeof(interface_x.ud));
+        data += sizeof(interface_x.ud);
+        length -= sizeof(interface_x.ud);
+        total_length += sizeof(interface_x.ud);
+        // ep in
+        assert(length >= USB_DT_ENDPOINT_SIZE);
+        memcpy(data, &interface_x.ep_in, USB_DT_ENDPOINT_SIZE);
+        data += USB_DT_ENDPOINT_SIZE;
+        length -= USB_DT_ENDPOINT_SIZE;
+        total_length += USB_DT_ENDPOINT_SIZE;
+        // ep out
+        assert(length >= USB_DT_ENDPOINT_SIZE);
+        memcpy(data, &interface_x.ep_out, USB_DT_ENDPOINT_SIZE);
+        data += USB_DT_ENDPOINT_SIZE;
+        length -= USB_DT_ENDPOINT_SIZE;
+        total_length += USB_DT_ENDPOINT_SIZE;
+    }
 
-    // IF 0 unknown descriptor
-    assert(length >= sizeof(if0_ud));
-    memcpy(data, &if0_ud, sizeof(if0_ud));
-    data += sizeof(if0_ud);
-    length -= sizeof(if0_ud);
-    total_length += sizeof(if0_ud);
-
-    // IF0 EP1 IN
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if0_ep1_in, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF0 EP1 OUT
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if0_ep1_out, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF1
-    assert(length >= sizeof(usb_if1));
-    memcpy(data, &usb_if1, sizeof(usb_if1));
-    data += sizeof(usb_if1);
-    length -= sizeof(usb_if1);
-    total_length += sizeof(usb_if1);
-
-    // IF 1 unknown descriptor
-    assert(length >= sizeof(if1_ud));
-    memcpy(data, &if1_ud, sizeof(if1_ud));
-    data += sizeof(if1_ud);
-    length -= sizeof(if1_ud);
-    total_length += sizeof(if1_ud);
-
-    // IF1 EP2 IN
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if1_ep2_in, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF1 EP2 OUT
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if1_ep2_out, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF2 (data 2)
-    struct usb_interface_descriptor usb_if2 = usb_if0;
-    usb_if2.bInterfaceNumber = IF2_INTERFACE_NUMBER;
-    assert(length >= sizeof(usb_if2));
-    memcpy(data, &usb_if2, sizeof(usb_if2));
-    data += sizeof(usb_if2);
-    length -= sizeof(usb_if2);
-    total_length += sizeof(usb_if2);
-
-    // IF 2 unknown descriptor
-    struct if_unknown_desc_control_surface if2_ud = if0_ud;
-    if2_ud.bEndpointAddressIn = IF2_UD_EP_IN;
-    if2_ud.bEndpointAddressOut = IF2_UD_EP_OUT;
-    assert(length >= sizeof(if2_ud));
-    memcpy(data, &if2_ud, sizeof(if2_ud));
-    data += sizeof(if2_ud);
-    length -= sizeof(if2_ud);
-    total_length += sizeof(if2_ud);
-
-    // IF2 EP3 IN
-    struct usb_endpoint_descriptor usb_if2_ep3_in = usb_if0_ep1_in;
-    usb_if2_ep3_in.bEndpointAddress = IF2_UD_EP_IN;
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if2_ep3_in, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF2 EP3 OUT
-    struct usb_endpoint_descriptor usb_if2_ep3_out = usb_if0_ep1_out;
-    usb_if2_ep3_out.bEndpointAddress = IF2_UD_EP_OUT;
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if2_ep3_out, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF3 (audio 2)
-    struct usb_interface_descriptor usb_if3 = usb_if1;
-    usb_if3.bInterfaceNumber = IF3_INTERFACE_NUMBER;
-    assert(length >= sizeof(usb_if3));
-    memcpy(data, &usb_if3, sizeof(usb_if3));
-    data += sizeof(usb_if3);
-    length -= sizeof(usb_if3);
-    total_length += sizeof(usb_if3);
-
-    // IF 3 unknown descriptor
-    struct if_unknown_desc_audio_surface if3_ud = if1_ud;
-    if3_ud.bEndpointAddressIn = IF3_UD_EP_IN;
-    if3_ud.bEndpointAddressOut = IF3_UD_EP_OUT;
-    assert(length >= sizeof(if3_ud));
-    memcpy(data, &if3_ud, sizeof(if3_ud));
-    data += sizeof(if3_ud);
-    length -= sizeof(if3_ud);
-    total_length += sizeof(if3_ud);
-
-    // IF3 EP4 IN
-    struct usb_endpoint_descriptor usb_if3_ep4_in = usb_if0_ep1_in;
-    usb_if3_ep4_in.bEndpointAddress = IF3_UD_EP_IN,
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if3_ep4_in, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF3 EP4 OUT
-    struct usb_endpoint_descriptor usb_if3_ep4_out = usb_if0_ep1_out;
-    usb_if3_ep4_out.bEndpointAddress = IF3_UD_EP_OUT,
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if3_ep4_out, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF4 (data 3)
-    struct usb_interface_descriptor usb_if4 = usb_if0;
-    usb_if4.bInterfaceNumber = IF4_INTERFACE_NUMBER;
-    assert(length >= sizeof(usb_if4));
-    memcpy(data, &usb_if4, sizeof(usb_if4));
-    data += sizeof(usb_if4);
-    length -= sizeof(usb_if4);
-    total_length += sizeof(usb_if4);
-
-    // IF 4 unknown descriptor
-    struct if_unknown_desc_control_surface if4_ud = if0_ud;
-    if4_ud.bEndpointAddressIn = IF4_UD_EP_IN;
-    if4_ud.bEndpointAddressOut = IF4_UD_EP_OUT;
-    assert(length >= sizeof(if4_ud));
-    memcpy(data, &if4_ud, sizeof(if4_ud));
-    data += sizeof(if4_ud);
-    length -= sizeof(if4_ud);
-    total_length += sizeof(if4_ud);
-
-    // IF4 EP5 IN
-    struct usb_endpoint_descriptor usb_if4_ep5_in = usb_if0_ep1_in;
-    usb_if4_ep5_in.bEndpointAddress = IF4_UD_EP_IN;
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if4_ep5_in, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF4 EP5 OUT
-    struct usb_endpoint_descriptor usb_if4_ep5_out = usb_if0_ep1_out;
-    usb_if4_ep5_out.bEndpointAddress = IF4_UD_EP_OUT;
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if4_ep5_out, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF5 (audio 3)
-    struct usb_interface_descriptor usb_if5 = usb_if1;
-    usb_if5.bInterfaceNumber = IF5_INTERFACE_NUMBER;
-    assert(length >= sizeof(usb_if5));
-    memcpy(data, &usb_if5, sizeof(usb_if5));
-    data += sizeof(usb_if5);
-    length -= sizeof(usb_if5);
-    total_length += sizeof(usb_if5);
-
-    // IF 5 unknown descriptor
-    struct if_unknown_desc_audio_surface if5_ud = if1_ud;
-    if5_ud.bEndpointAddressIn = IF5_UD_EP_IN;
-    if5_ud.bEndpointAddressOut = IF5_UD_EP_OUT;
-    assert(length >= sizeof(if5_ud));
-    memcpy(data, &if5_ud, sizeof(if5_ud));
-    data += sizeof(if5_ud);
-    length -= sizeof(if5_ud);
-    total_length += sizeof(if5_ud);
-
-    // IF5 EP6 IN
-    struct usb_endpoint_descriptor usb_if5_ep6_in = usb_if0_ep1_in;
-    usb_if5_ep6_in.bEndpointAddress = IF5_UD_EP_IN,
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if5_ep6_in, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF5 EP6 OUT
-    struct usb_endpoint_descriptor usb_if5_ep6_out = usb_if0_ep1_out;
-    usb_if5_ep6_out.bEndpointAddress = IF5_UD_EP_OUT,
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if5_ep6_out, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF6 (data 4)
-    struct usb_interface_descriptor usb_if6 = usb_if0;
-    usb_if6.bInterfaceNumber = IF6_INTERFACE_NUMBER;
-    assert(length >= sizeof(usb_if6));
-    memcpy(data, &usb_if6, sizeof(usb_if6));
-    data += sizeof(usb_if6);
-    length -= sizeof(usb_if6);
-    total_length += sizeof(usb_if6);
-
-    // IF 6 unknown descriptor
-    struct if_unknown_desc_control_surface if6_ud = if0_ud;
-    if6_ud.bEndpointAddressIn = IF6_UD_EP_IN;
-    if6_ud.bEndpointAddressOut = IF6_UD_EP_OUT;
-    assert(length >= sizeof(if6_ud));
-    memcpy(data, &if6_ud, sizeof(if6_ud));
-    data += sizeof(if6_ud);
-    length -= sizeof(if6_ud);
-    total_length += sizeof(if6_ud);
-
-    // IF 6 EP7 IN
-    struct usb_endpoint_descriptor usb_if6_ep7_in = usb_if0_ep1_in;
-    usb_if6_ep7_in.bEndpointAddress = IF6_UD_EP_IN;
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if6_ep7_in, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF6 EP7 OUT
-    struct usb_endpoint_descriptor usb_if6_ep7_out = usb_if0_ep1_out;
-    usb_if6_ep7_out.bEndpointAddress = IF6_UD_EP_OUT;
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if6_ep7_out, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF7 (audio 4)
-    struct usb_interface_descriptor usb_if7 = usb_if1;
-    usb_if7.bInterfaceNumber = IF7_INTERFACE_NUMBER;
-    assert(length >= sizeof(usb_if7));
-    memcpy(data, &usb_if7, sizeof(usb_if7));
-    data += sizeof(usb_if7);
-    length -= sizeof(usb_if7);
-    total_length += sizeof(usb_if7);
-
-    // IF 7 unknown descriptor
-    struct if_unknown_desc_audio_surface if7_ud = if1_ud;
-    if7_ud.bEndpointAddressIn = IF7_UD_EP_IN;
-    if7_ud.bEndpointAddressOut = IF7_UD_EP_OUT;
-    assert(length >= sizeof(if7_ud));
-    memcpy(data, &if7_ud, sizeof(if7_ud));
-    data += sizeof(if7_ud);
-    length -= sizeof(if7_ud);
-    total_length += sizeof(if7_ud);
-
-    // IF7 EP8 IN
-    struct usb_endpoint_descriptor usb_if7_ep8_in = usb_if0_ep1_in;
-    usb_if7_ep8_in.bEndpointAddress = IF7_UD_EP_IN,
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if7_ep8_in, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    // IF7 EP8 OUT
-    struct usb_endpoint_descriptor usb_if7_ep8_out = usb_if0_ep1_out;
-    usb_if7_ep8_out.bEndpointAddress = IF7_UD_EP_OUT,
-    assert(length >= USB_DT_ENDPOINT_SIZE);
-    memcpy(data, &usb_if7_ep8_out, USB_DT_ENDPOINT_SIZE);
-    data += USB_DT_ENDPOINT_SIZE;
-    length -= USB_DT_ENDPOINT_SIZE;
-    total_length += USB_DT_ENDPOINT_SIZE;
-
-    ////////
-
+    // Adjust config
+    config->bNumInterfaces = n_interfaces;
     config->wTotalLength = __cpu_to_le16(total_length);
     printf("config->wTotalLength: %d\n", total_length);
 
@@ -329,13 +112,26 @@ void process_eps_info(int fd)
 
     for (int i = 0; i < num; i++)
     {
-        if (assign_ep_address(&info.eps[i], &usb_if0_ep1_in))
-            continue;
+        struct if_full_struct current_if = get_if_x(i);
+        bool in_assigned = assign_ep_address(&info.eps[i], &current_if.ep_in);
+        if (!in_assigned)
+        {
+            printf("fail: could not assign IN endpoint: %X\n", i);
+            exit(EXIT_FAILURE);
+        }
+        bool out_assigned = assign_ep_address(&info.eps[i], &current_if.ep_out);
+        if (!out_assigned)
+        {
+            printf("fail: could not assign OUT endpoint: %X\n", i);
+            exit(EXIT_FAILURE);
+        }
+        int in_addr = usb_endpoint_num(&current_if.ep_in);
+        assert(in_addr != 0);
+        printf("ep_int_in: addr = %u\n", in_addr);
+        int out_addr = usb_endpoint_num(&current_if.ep_out);
+        assert(out_addr != 0);
+        printf("ep_int_out: addr = %u\n", out_addr);
     }
-
-    int ep_int_in_addr = usb_endpoint_num(&usb_if0_ep1_in);
-    assert(ep_int_in_addr != 0);
-    printf("ep_int_in: addr = %u\n", ep_int_in_addr);
 }
 
 void set_usb_string_desc(const char *str, struct usb_raw_control_ep0_io *io)

@@ -1,8 +1,5 @@
 #include "360-w-gadget.h"
 
-// Endpoint addr (- = first available?)
-int ep_int_in = -1;
-int ep_int_in2 = -1;
 // Endpoint control block
 bool ep_int_enabled = false;
 
@@ -69,39 +66,37 @@ bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                     // Serial number string descriptor
                     set_usb_string_desc("08FEC93", io); // TODO: Never gets asked from host?
                     break;
-                return true;
+                    return true;
                 }
             default:
-                printf("fail: no/unknown descriptor response\n");
-                // exit(EXIT_FAILURE);
+                // Unknown descriptor response, ignore.
                 return true;
             }
             break;
         case USB_REQ_SET_CONFIGURATION:
-            // Set configuration request (endpoint 1?)
+            // Set configuration request
             printf("SET CONFIGURATION\n");
             printf("event->ctrl.wValue: %d\n", event->ctrl.wValue);
-            ep_int_in = usb_raw_ep_enable(fd, &usb_if0_ep1_in);
-            printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
-            
-            
 
-            // ep data 2?..
-            struct usb_endpoint_descriptor usb_if2_ep3_in = usb_if0_ep1_in;
-            usb_if2_ep3_in.bEndpointAddress = IF2_UD_EP_IN;
-            ep_int_in2 = usb_raw_ep_enable(fd, &usb_if2_ep3_in);
-
+            int i;
+            for (i = 0; i < n_interfaces; i++)
+            {
+                struct if_full_struct interface_x = get_if_x(i);
+                // ep in
+                int ep_int_in = usb_raw_ep_enable(fd, &interface_x.ep_in);
+                printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
+                // ep out
+                int ep_int_out = usb_raw_ep_enable(fd, &interface_x.ep_out);
+                printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
+            }
             ep_int_enabled = true;
-
-
+            // Power settings
             usb_raw_vbus_draw(fd, usb_config.bMaxPower);
             usb_raw_configure(fd);
             io->inner.length = 0;
-            
-
             return true;
         case USB_REQ_GET_INTERFACE:
-            io->data[0] = usb_if0.bAlternateSetting;
+            io->data[0] = usb_if_xinput.bAlternateSetting;
             io->inner.length = 1;
             return true;
         default:
@@ -152,10 +147,21 @@ void *ep0_loop(void *arg)
             if (ep_int_enabled)
             {
                 printf("ep0: disabling ep1 IN\n");
-                // On reset, disable the interrupt endpoint
-                usb_raw_ep_disable(fd, ep_int_in);
+                // On reset, disable all endpoints
+                int i;
+                for (i = 0; i < n_interfaces; i++)
+                {
+                    struct if_full_struct interface_x = get_if_x(i);
+                    // ep in
+                    int ep_int_in = usb_endpoint_num(&interface_x.ep_in);
+                    usb_raw_ep_disable(fd, ep_int_in);
+                    printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
+                    // ep out
+                    int ep_int_out = usb_endpoint_num(&interface_x.ep_out);
+                    usb_raw_ep_disable(fd, ep_int_out);
+                    printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
+                }
                 ep_int_enabled = false;
-                printf("ep0: disabled ep1 IN\n");
             }
             continue;
         }
@@ -259,14 +265,16 @@ void close_360_gadget(int fd)
     }
 }
 
-bool send_to_ep1(int fd, char *data, int len)
+bool send_to_ep(int fd, int n, char *data, int len)
 {
     if (!ep_int_enabled)
     {
         printf("ep_int_in not enabled / available\n");
         return false;
     }
-    struct usb_raw_interrupt_ep1_io io;
+    struct if_full_struct interface_x = get_if_x(n);
+    int ep_int_in = usb_endpoint_num(&interface_x.ep_in);
+    struct usb_raw_interrupt_ep_io io;
     io.inner.ep = ep_int_in;
     io.inner.flags = 0;
     io.inner.length = len;
@@ -281,31 +289,17 @@ bool send_to_ep1(int fd, char *data, int len)
     return true;
 }
 
-bool send_to_ep2(int fd, char *data, int len)
+bool set_n_interfaces(int n)
 {
-    if (!ep_int_enabled)
-    {
-        printf("ep_int_in 2 not enabled / available\n");
-        return false;
-    }
-    struct usb_raw_interrupt_ep1_io io;
-    io.inner.ep = ep_int_in2;
-    io.inner.flags = 0;
-    io.inner.length = len;
-    printf("ep_int_in2: sending %d bytes\n", len);
-    memcpy(&io.inner.data[0], data, len);
-    int rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
-    if (rv < 0)
-    {
-        perror("usb_raw_ep_write_may_fail()");
-        return false;
-    }
+    // TODO: SET MAX
+    n_interfaces = n;
     return true;
 }
 
 void gadget_example()
 {
-    // TODO: fix? Never captured input from this receiver, might be expecting different packets?
+    // Set the amount of interfaces
+    set_n_interfaces(4);
     int fd = init_360_gadget(true);
 
     // Event loop
@@ -326,17 +320,24 @@ void gadget_example()
             {
                 printf("A DOWN\n");
                 // Send a blank packet to the interrupt endpoint
-                send_to_ep1(fd, blank_packet, 20);
-                send_to_ep2(fd, blank_packet, 20);
+                int i;
+                for (i = 0; i < n_interfaces; i++)
+                {
+                    send_to_ep(fd, i, blank_packet, 20);
+                }
+
                 a_pressed = false;
             }
             else
             {
                 printf("NO INPUT\n");
                 // Send A button press to the interrupt endpoint
-                send_to_ep1(fd, a_packet, 20);
-                send_to_ep2(fd, a_packet, 20);
-                
+                int i;
+                for (i = 0; i < n_interfaces; i++)
+                {
+                    send_to_ep(fd, i, a_packet, 20);
+                }
+
                 a_pressed = true;
             }
             time_passed = 0;

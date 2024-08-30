@@ -12,10 +12,10 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/raw_gadget.h>
 
-// Max sizes
-#define EP0_MAX_DATA 512
-// EP1, control surface -> 32 bytes max. (in actuality, 20 bytes get sent)
-#define EP1_MAX_PACKET_INT __constant_cpu_to_le16(0x0020)
+// Max size over ep0 (just a big number to hopefully allow enough interfaces)
+#define EP0_MAX_DATA 16384
+// EPX, control surface -> 32 bytes max. (in actuality, 20 bytes get sent)
+#define EP_MAX_PACKET_INT __constant_cpu_to_le16(0x0020)
 
 struct usb_raw_control_ep0_event
 {
@@ -31,12 +31,12 @@ struct usb_raw_control_ep0_io
 };
 extern struct usb_raw_control_ep0_io usb_raw_control_ep0_io;
 
-struct usb_raw_interrupt_ep1_io
+struct usb_raw_interrupt_ep_io
 {
     struct usb_raw_ep_io inner;
-    char data[EP1_MAX_PACKET_INT];
+    char data[EP_MAX_PACKET_INT];
 };
-extern struct usb_raw_interrupt_ep1_io usb_raw_interrupt_ep1_io;
+extern struct usb_raw_interrupt_ep_io usb_raw_interrupt_ep_io;
 
 // taken from latest raw_gadget.h -> needed to rename the enum to avoid conflict (yay)
 // Depending on the kernel version, the enum might be different. That's why I'm copying it here.
