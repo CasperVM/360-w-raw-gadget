@@ -101,6 +101,11 @@ int usb_raw_ep_read(int fd, struct usb_raw_ep_io *io)
     return rv;
 }
 
+int usb_raw_ep_read_may_fail(int fd, struct usb_raw_ep_io *io)
+{
+    return ioctl(fd, USB_RAW_IOCTL_EP_READ, io);
+}
+
 int usb_raw_ep_write(int fd, struct usb_raw_ep_io *io)
 {
     int rv = ioctl(fd, USB_RAW_IOCTL_EP_WRITE, io);

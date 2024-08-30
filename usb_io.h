@@ -74,6 +74,7 @@ int usb_raw_ep0_write(int fd, struct usb_raw_ep_io *io);
 int usb_raw_ep_enable(int fd, struct usb_endpoint_descriptor *desc);
 int usb_raw_ep_disable(int fd, int ep);
 int usb_raw_ep_read(int fd, struct usb_raw_ep_io *io);
+int usb_raw_ep_read_may_fail(int fd, struct usb_raw_ep_io *io);
 int usb_raw_ep_write(int fd, struct usb_raw_ep_io *io);
 int usb_raw_ep_write_may_fail(int fd, struct usb_raw_ep_io *io);
 void usb_raw_configure(int fd);

@@ -3,6 +3,19 @@
 // Endpoint control block
 bool ep_int_enabled = false;
 
+bool set_n_interfaces(int n)
+{
+    // 4 Seems to be the hard limit with this device, otherwise USB_RAW_IOCTL_EP_WRITE will stall.
+    // Possibly driver ignoring input? / Maybe the custom vendor descriptor would need changing?
+    if (n < 1 || n > 4)
+    {
+        return false;
+    }
+
+    n_interfaces = n;
+    return true;
+}
+
 // Handle ep0 control requests
 bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                  struct usb_raw_control_ep0_io *io)
@@ -86,8 +99,8 @@ bool ep0_request(int fd, struct usb_raw_control_ep0_event *event,
                 int ep_int_in = usb_raw_ep_enable(fd, &interface_x.ep_in);
                 printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
                 // // ep out
-                // int ep_int_out = usb_raw_ep_enable(fd, &interface_x.ep_out);
-                // printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
+                int ep_int_out = usb_raw_ep_enable(fd, &interface_x.ep_out);
+                printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
             }
             ep_int_enabled = true;
             // Power settings
@@ -157,9 +170,9 @@ void *ep0_loop(void *arg)
                     usb_raw_ep_disable(fd, ep_int_in);
                     printf("ep0: ep_int_in enabled: %d\n", ep_int_in);
                     // // ep out
-                    // int ep_int_out = usb_endpoint_num(&interface_x.ep_out);
-                    // usb_raw_ep_disable(fd, ep_int_out);
-                    // printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
+                    int ep_int_out = usb_endpoint_num(&interface_x.ep_out);
+                    usb_raw_ep_disable(fd, ep_int_out);
+                    printf("ep0: ep_int_out enabled: %d\n", ep_int_out);
                 }
                 ep_int_enabled = false;
             }
@@ -201,7 +214,7 @@ void *ep0_loop(void *arg)
 
 // PUBLIC FUNCTIONS
 bool gadget_initialized = false;
-int init_360_gadget(bool await_endpoint_availability)
+int init_360_gadget(bool await_endpoint_availability, int n_interfaces)
 {
     // Initialize the USB device
     /*Overall USB flow;
@@ -213,6 +226,7 @@ int init_360_gadget(bool await_endpoint_availability)
         - set interface to work with
         - set configuration to work with
     */
+    set_n_interfaces(n_interfaces);
 
     // Default device and driver
     const char *device = USB_RAW_GADGET_DEVICE_DEFAULT;
@@ -272,8 +286,6 @@ bool send_to_ep(int fd, int n, char *data, int len)
         printf("ep_int_in not enabled / available\n");
         return false;
     }
-    struct if_full_struct interface_x = get_if_x(n);
-    
     // FIXME: `usb_endpoint_num` does NOT return the correct address?
     // int ep_int_in = usb_endpoint_num(&interface_x.ep_in);
 
@@ -281,7 +293,7 @@ bool send_to_ep(int fd, int n, char *data, int len)
     // That at least seems to be how these are assigned;
     // I'm to lazy to retrieve it properly from the `usb_raw_ep_enable`
 
-    int ep_int_in = n*2;
+    int ep_int_in = n * 2;
 
     struct usb_raw_interrupt_ep_io io;
     io.inner.ep = ep_int_in;
@@ -298,23 +310,42 @@ bool send_to_ep(int fd, int n, char *data, int len)
     return true;
 }
 
-bool set_n_interfaces(int n)
+unsigned char *receive_from_ep(int fd, int n, int len)
 {
-    // 4 Seems to be the hard limit with this device, otherwise USB_RAW_IOCTL_EP_WRITE will stall.
-    // Possibly driver ignoring input? / Maybe the custom vendor descriptor would need changing?
-    if (n < 1 || n > 4) {
+    if (!ep_int_enabled)
+    {
+        printf("ep_int_in not enabled / available\n");
         return false;
     }
-        
-    n_interfaces = n;
-    return true;
+    // FIXME: same hacky fix as above, different sequence (1, 3, ...)
+    int ep_int_out = (n * 2) + 1;
+
+    struct usb_raw_ep_io io;
+    io.ep = ep_int_out;
+    io.flags = 0;
+    // data should be filled?
+
+    printf("ep_int_out: receiver for interface %d with addr %d \n", n, ep_int_out);
+    // memcpy(&io.inner.data[0], data, len);
+    usb_raw_ep_read_may_fail(fd, (struct usb_raw_ep_io *)&io);
+
+    // Allocate memory to store the received data
+    unsigned char *data = (unsigned char *)malloc(len);
+    if (!data)
+    {
+        perror("malloc");
+        return NULL;
+    }
+
+    // Copy the data from the io buffer to the newly allocated memory
+    memcpy(data, io.data, len);
+
+    return data;
 }
 
 void gadget_example()
 {
-    // Set the amount of interfaces
-    set_n_interfaces(4);
-    int fd = init_360_gadget(true);
+    int fd = init_360_gadget(true, 4);
 
     // Event loop
     int time_passed = 0;
@@ -353,6 +384,12 @@ void gadget_example()
                 }
 
                 a_pressed = true;
+            }
+            int i;
+            for (i = 0; i < n_interfaces; i++)
+            {
+                unsigned char *somedata = receive_from_ep(fd, i, 8);
+                printf("receiver some data; %s", somedata);
             }
             time_passed = 0;
         }

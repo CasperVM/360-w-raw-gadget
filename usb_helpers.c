@@ -118,9 +118,9 @@ void process_eps_info(int fd)
         int in_addr = usb_endpoint_num(&current_if.ep_in);
         assert(in_addr != 0);
         printf("ep_int_in: addr = %u\n", in_addr);
-        // int out_addr = usb_endpoint_num(&current_if.ep_out);
-        // assert(out_addr != 0);
-        // printf("ep_int_out: addr = %u\n", out_addr);
+        int out_addr = usb_endpoint_num(&current_if.ep_out);
+        assert(out_addr != 0);
+        printf("ep_int_out: addr = %u\n", out_addr);
     }
 }
 
