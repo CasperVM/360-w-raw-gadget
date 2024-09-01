@@ -14,6 +14,8 @@ Thus, we're using raw-gadget + C here.
 Originally, I made this for 1 controller at first, this would be a bit more close to the hardware.
 You can find that [here.](https://github.com/Berghopper/360-raw-gadget)
 
+**Small disclaimer**: This doesn't actually properly emulate the receiver, it's a bit of a cursed mix of various descriptors of both the receiver + the xbox controller. It's just to trick various drivers to pick up multiple input xbox controllers.
+
 ## Functionality
 
 For now only the input endpoints are implemented, which allows for controller input to be sent to the host.
