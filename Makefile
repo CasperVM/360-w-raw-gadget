@@ -11,7 +11,7 @@ SRCS_LIB = 360-w-gadget.c usb_descriptors.c usb_io.c usb_helpers.c
 OBJS = $(SRCS:.c=.o)
 OBJS_LIB = $(SRCS_LIB:.c=.o)
 TARGET = example
-STATIC_LIB = lib360gadget.a
+STATIC_LIB = lib360wgadget.a
 
 all: $(TARGET) $(STATIC_LIB)
 
