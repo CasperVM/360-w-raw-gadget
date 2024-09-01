@@ -67,7 +67,11 @@ struct if_full_struct
 #define BCD_USB 0x0200
 
 #define USB_VENDOR 0x045e  // Microsoft
-#define USB_PRODUCT 0x0719 // Xbox 360 Wireless Adapter
+// #define USB_PRODUCT 0x0719 // Xbox 360 Wireless Adapter
+// Both windows and linux allow multiple inputs (controllers) if we act like a 360 controller?
+// Weird, but sure...
+#define USB_PRODUCT 0x028e // 360 controller
+// MacOS can only support 1 input this way? :/
 
 // String indexes for strings in the string descriptor
 #define STRING_ID_MANUFACTURER 0x01
