@@ -93,5 +93,6 @@
 // Available functions
 extern int init_360_gadget(bool await_endpoint_availability, int n_interfaces);
 extern void close_360_gadget(int fd);
+// Send to the various interfaces, starting at 0. So controller 1, means N needs to be 0.
 extern bool send_to_ep(int fd, int n, char *data, int len);
 extern void gadget_example();

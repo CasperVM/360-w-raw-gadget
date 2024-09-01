@@ -299,7 +299,7 @@ bool send_to_ep(int fd, int n, char *data, int len)
     io.inner.ep = ep_int_in;
     io.inner.flags = 0;
     io.inner.length = len;
-    printf("ep_int_in: sending %d bytes for interface %d with addr %d \n", len, n, ep_int_in);
+    // printf("ep_int_in: sending %d bytes for interface %d with addr %d \n", len, n, ep_int_in);
     memcpy(&io.inner.data[0], data, len);
     int rv = usb_raw_ep_write_may_fail(fd, (struct usb_raw_ep_io *)&io);
     if (rv < 0)
