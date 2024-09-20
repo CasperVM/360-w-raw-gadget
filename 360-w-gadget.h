@@ -19,12 +19,17 @@
 #ifndef USB_GADGET_CONFIG_H
 #define USB_GADGET_CONFIG_H
 
-// Raspberry Pi Zero / Zero 2 (default)
+// Raspberry Pi Zero (default)
 #define USB_RAW_GADGET_DRIVER_DEFAULT "20980000.usb"
 #define USB_RAW_GADGET_DEVICE_DEFAULT "20980000.usb" // dwc2
 
+// Raspberry Pi Zero 2
+#if defined(HW_RPI0_2)
+#define USB_RAW_GADGET_DRIVER_DEFAULT "3f980000.usb"
+#define USB_RAW_GADGET_DEVICE_DEFAULT "3f980000.usb" // dwc2
+
 // Raspberry Pi 4
-#if defined(HW_RPI4)
+#elif defined(HW_RPI4)
 #define USB_RAW_GADGET_DRIVER_DEFAULT "fe980000.usb"
 #define USB_RAW_GADGET_DEVICE_DEFAULT "fe980000.usb" // dwc2
 

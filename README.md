@@ -29,6 +29,7 @@ This project supports a range of hardware configurations, as listed below. You c
 | Hardware                           | Build Target            | Driver           | Device                  |
 | ---------------------------------- | ----------------------- | ---------------- | ----------------------- |
 | Raspberry Pi Zero (default target) | `make`                  | `20980000.usb`   | `20980000.usb` (dwc2)   |
+| Raspberry Pi Zero 2                | `make rpi0_2`           | `3f980000.usb`   | `3f980000.usb` (dwc2)   |
 | Raspberry Pi 4                     | `make rpi4`             | `fe980000.usb`   | `fe980000.usb` (dwc2)   |
 | Raspberry Pi 5                     | `make rpi5`             | `1000480000.usb` | `1000480000.usb` (dwc2) |
 | USB Armory Mk II                   | `make usb-armory-mk2`   | `2184000.usb`    | `ci_hdrc.0`             |

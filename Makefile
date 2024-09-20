@@ -21,6 +21,11 @@ $(TARGET): $(OBJS)
 $(STATIC_LIB): $(OBJS_LIB)
 	ar rcs $@ $(OBJS_LIB)
 
+.PHONY: rpi0_2
+rpi0_2:
+	$(MAKE) CFLAGS="$(CFLAGS) -DHW_RPI0_2" $(TARGET)
+	ar rcs $(STATIC_LIB) $(OBJS_LIB)  
+
 .PHONY: rpi4
 rpi4: 
 	$(MAKE) CFLAGS="$(CFLAGS) -DHW_RPI4" $(TARGET)
