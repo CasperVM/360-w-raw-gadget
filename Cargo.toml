@@ -1,9 +1,18 @@
 [package]
 name = "x360-w-raw-gadget"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
-description = "Testable Rust core for an Xbox 360 wireless receiver raw-gadget emulator"
+description = "Xbox 360 wireless receiver emulator for Linux via raw-gadget — Rust core + C FFI shared library"
 license = "MIT"
+repository = "https://github.com/CasperVM/360-w-raw-gadget"
+keywords = ["xbox360", "gamepad", "usb-gadget", "hid", "embedded-linux"]
+categories = ["hardware-support", "emulators", "os::linux-apis"]
+exclude = [
+    "*.c",
+    "*.h",
+    "Makefile",
+    "target/",
+]
 
 [lib]
 name = "x360_w_raw_gadget"
@@ -19,4 +28,3 @@ libc = "0.2"
 [[bin]]
 name = "x360-w-gadget"
 path = "src/main.rs"
-
