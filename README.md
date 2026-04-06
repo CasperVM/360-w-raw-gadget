@@ -1,5 +1,8 @@
 # 360-w-raw-gadget
 
+[![crates.io](https://img.shields.io/crates/v/x360-w-raw-gadget)](https://crates.io/crates/x360-w-raw-gadget)
+[![docs.rs](https://docs.rs/x360-w-raw-gadget/badge.svg)](https://docs.rs/x360-w-raw-gadget)
+
 Emulates an Xbox 360 wireless receiver (up to 4 controllers) on Linux via the raw-gadget kernel interface. Written in Rust; exposes a C-callable shared library for Python/ctypes integration.
 
 Tested on Raspberry Pi Zero 2W.

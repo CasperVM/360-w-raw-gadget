@@ -1,0 +1,21 @@
+default:
+  image: rust:latest
+
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  script:
+    - cargo build --release
+  artifacts:
+    paths:
+      - target/release/libx360_w_raw_gadget.so
+      - target/release/x360-w-gadget
+    expire_in: 1 week
+
+test:
+  stage: test
+  script:
+    - cargo test
