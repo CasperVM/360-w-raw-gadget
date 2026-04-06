@@ -1,9 +1,24 @@
-// Standalone runner for the Xbox 360 wireless receiver emulator.
-// Enumerates as a wireless receiver and prints any rumble/LED commands received.
-//
-// Usage: sudo ./x360-w-gadget [num_interfaces] [driver] [device] [--demo]
-// Defaults: 4 interfaces, "20980000.usb" (Pi Zero / Pi Zero 2W)
-// --demo: toggles A button on slot 0 every second (like the C example)
+//! Standalone binary: `x360-w-gadget`
+//!
+//! Enumerates a USB Xbox 360 wireless receiver on the local raw-gadget device
+//! and prints any rumble/LED commands the host sends back.
+//!
+//! # Usage
+//!
+//! ```text
+//! sudo x360-w-gadget [num_interfaces] [driver] [device] [--demo] [--debug]
+//! ```
+//!
+//! | Argument | Default | Description |
+//! |---|---|---|
+//! | `num_interfaces` | `4` | Controller slots to expose (1–4) |
+//! | `driver` | `3f980000.usb` | UDC driver name |
+//! | `device` | same as driver | UDC device name |
+//! | `--demo` | off | Toggle A button on all slots every second |
+//! | `--debug` | off | Print verbose USB traffic to stderr |
+//!
+//! Debug logging can also be enabled by setting the `X360_DEBUG` environment
+//! variable.
 
 use std::env;
 use std::time::Duration;

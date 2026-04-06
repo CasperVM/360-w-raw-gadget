@@ -1,6 +1,19 @@
-// Raw bindings to the Linux raw-gadget kernel interface.
-// Structs and ioctl numbers match <linux/usb/raw_gadget.h>.
-// All structs are #[repr(C)] to match kernel ABI.
+//! Raw Rust bindings to the Linux raw-gadget kernel interface.
+//!
+//! This module contains the ioctl numbers, `#[repr(C)]` structs, and unsafe
+//! wrapper functions that correspond directly to the kernel API defined in
+//! `<linux/usb/raw_gadget.h>` and `<linux/usb/ch9.h>`.
+//!
+//! You do not normally need to use this module directly — [`RawGadgetTransport`](crate::RawGadgetTransport)
+//! uses it internally. It is public so that embedders can build custom
+//! transports on top of the same ioctl layer if needed.
+//!
+//! # Safety
+//!
+//! All functions in this module are `unsafe`. They issue ioctls against a
+//! raw file descriptor obtained from `/dev/raw-gadget`. Misuse (wrong fd,
+//! wrong struct sizes, wrong sequence) will cause kernel errors or undefined
+//! behaviour at the ioctl boundary.
 
 use std::io;
 use std::os::fd::RawFd;
@@ -22,6 +35,7 @@ use std::os::fd::RawFd;
 //   __u32                     = 4
 // ---------------------------------------------------------------------------
 
+/// `USB_RAW_IOCTL_INIT` — initialise the gadget with driver/device/speed.
 pub const USB_RAW_IOCTL_INIT:        u32 = 0x41015500; // _IOW('U', 0, usb_raw_init=257)
 pub const USB_RAW_IOCTL_RUN:         u32 = 0x00005501; // _IO('U', 1)
 pub const USB_RAW_IOCTL_EVENT_FETCH: u32 = 0x80085502; // _IOR('U', 2, usb_raw_event=8)

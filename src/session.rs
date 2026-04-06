@@ -1,9 +1,19 @@
+//! Orchestration layer: [`WirelessReceiver`], the [`Transport`] trait, and [`MockTransport`].
+//!
+//! [`WirelessReceiver`] is the top-level object you interact with. It owns the
+//! controller slots and dispatches input/output through a pluggable
+//! [`Transport`].
+//!
+//! Swap [`MockTransport`] in for unit tests and [`RawGadgetTransport`](crate::RawGadgetTransport)
+//! for real hardware — the receiver code is identical in both cases.
+
 use std::collections::VecDeque;
 use std::error::Error;
 use crate::controller::ControllerSlot;
 use crate::descriptors::ConfigDescriptorSet;
 use crate::protocol::{InputReport, LedReport, OutputReport, RumbleReport};
 
+/// A control-transfer command received from the USB host during enumeration.
 #[derive(Debug, Clone)]
 pub enum HostCommand {
     GetDescriptor { descriptor_type: u8 },
@@ -11,9 +21,17 @@ pub enum HostCommand {
     RequestInput,
 }
 
+/// Abstraction over the USB I/O layer.
+///
+/// Implement this trait to swap in a different backend — the production
+/// [`RawGadgetTransport`](crate::RawGadgetTransport) and the test
+/// [`MockTransport`] both implement it.
 pub trait Transport {
+    /// Send a descriptor blob to the host (used during enumeration).
     fn write_descriptor(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
+    /// Send a 20-byte HID input report for `interface` (0-based slot index).
     fn write_input_report(&mut self, interface: u8, report: &InputReport) -> Result<(), Box<dyn Error>>;
+    /// Read the next pending control-transfer request from the host, if any.
     fn read_control(&mut self) -> Result<Option<HostCommand>, Box<dyn Error>>;
 
     /// Poll for a pending rumble command from the host on this interface's OUT endpoint.
@@ -37,6 +55,25 @@ pub trait Transport {
     }
 }
 
+/// In-memory [`Transport`] for unit tests.
+///
+/// Records input reports and descriptors sent to it, and lets you pre-load
+/// rumble/LED output reports via [`queue_output`](Self::queue_output).
+///
+/// # Example
+///
+/// ```rust
+/// use x360_w_raw_gadget::{ConfigDescriptorSet, WirelessReceiver, session::MockTransport};
+/// use x360_w_raw_gadget::protocol::{OutputReport, RumbleReport};
+///
+/// let config = ConfigDescriptorSet::new(1).unwrap();
+/// let mut transport = MockTransport::new();
+/// transport.queue_output(0, OutputReport::Rumble(RumbleReport { left_motor: 255, right_motor: 0 }));
+///
+/// let mut receiver = WirelessReceiver::new(config, Box::new(transport));
+/// let rumble = receiver.poll_rumble(0).unwrap();
+/// assert!(rumble.is_some());
+/// ```
 pub struct MockTransport {
     last_report: Option<InputReport>,
     descriptors_sent: Vec<Vec<u8>>,
@@ -104,6 +141,13 @@ impl Transport for MockTransport {
     }
 }
 
+/// Top-level emulated Xbox 360 wireless receiver.
+///
+/// Owns 1–4 [`ControllerSlot`]s and a [`Transport`]. Call
+/// [`send_input`](Self::send_input) each tick to push the current
+/// [`InputState`](crate::InputState) to the host, and
+/// [`poll_rumble`](Self::poll_rumble) / [`poll_led`](Self::poll_led) to
+/// receive feedback from the host.
 pub struct WirelessReceiver {
     config: ConfigDescriptorSet,
     slots: Vec<ControllerSlot>,

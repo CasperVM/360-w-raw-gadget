@@ -1,14 +1,53 @@
-// C-callable API for Python ctypes integration.
-//
-// Build with crate-type = ["cdylib"] to produce libx360_w_raw_gadget.so.
-//
-// Python usage (ctypes):
-//
-//   lib = ctypes.CDLL("libx360_w_raw_gadget.so")
-//   h = lib.x360_open(1, b"3f980000.usb", b"3f980000.usb")
-//   lib.x360_send(h, 0, packet_ptr, 20)
-//   ...
-//   lib.x360_close(h)
+//! C-callable FFI surface for use from Python, C, or any language with a C FFI.
+//!
+//! Built as `libx360_w_raw_gadget.so` when the crate is compiled with
+//! `crate-type = ["cdylib"]` (the default). All symbols are prefixed `x360_`.
+//!
+//! ## Symbol summary
+//!
+//! | Symbol | Description |
+//! |--------|-------------|
+//! | [`x360_open`] | Open a receiver gadget, returns opaque handle |
+//! | [`x360_close`] | Close a handle |
+//! | [`x360_send`] | Send a raw 20-byte input report for a slot |
+//! | [`x360_poll_rumble`] | Poll for a rumble command from the host |
+//! | [`x360_poll_led`] | Poll for an LED animation command from the host |
+//! | [`x360_set_debug`] | Enable/disable verbose debug logging |
+//!
+//! ## Python example
+//!
+//! ```python
+//! import ctypes
+//!
+//! lib = ctypes.CDLL("target/release/libx360_w_raw_gadget.so")
+//! lib.x360_open.restype    = ctypes.c_void_p
+//! lib.x360_send.restype    = ctypes.c_int
+//! lib.x360_poll_rumble.restype = ctypes.c_int
+//! lib.x360_poll_led.restype    = ctypes.c_int
+//!
+//! h = lib.x360_open(1, b"3f980000.usb", b"3f980000.usb")
+//!
+//! # Send a 20-byte input report (A button pressed)
+//! packet = (ctypes.c_uint8 * 20)(0x00, 0x14, 0x00, 0x10, *([0] * 16))
+//! lib.x360_send(h, 0, packet, 20)
+//!
+//! # Poll for rumble
+//! left, right = ctypes.c_uint8(), ctypes.c_uint8()
+//! if lib.x360_poll_rumble(h, 0, ctypes.byref(left), ctypes.byref(right)) == 1:
+//!     print(f"rumble left={left.value} right={right.value}")
+//!
+//! # Poll for LED
+//! anim = lib.x360_poll_led(h, 0)
+//! if anim >= 0:
+//!     print(f"led animation={anim}")
+//!
+//! lib.x360_close(h)
+//! ```
+//!
+//! ## Debug logging
+//!
+//! Set the `X360_DEBUG` environment variable or call `x360_set_debug(1)` to
+//! enable verbose USB traffic logging to stderr.
 
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_int};

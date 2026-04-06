@@ -1,13 +1,25 @@
-// RawGadgetTransport: implements Transport by calling raw-gadget ioctls directly.
-// Replaces the C code in 360-w-gadget.c.
-//
-// Threading model:
-//   - ep0 thread: blocks on EVENT_FETCH, handles all control requests internally
-//   - ep_out threads: one per OUT endpoint, each blocks on EP_READ
-//   - main thread: calls EP_WRITE (send input), polls output via channel
-//
-// raw_gadget does not support O_NONBLOCK for ioctls, so all blocking I/O is
-// moved to dedicated threads that communicate via mpsc channels.
+//! Hardware [`Transport`](crate::Transport) implementation using raw-gadget ioctls.
+//!
+//! [`RawGadgetTransport`] is the production backend. It opens
+//! `/dev/raw-gadget`, performs USB enumeration, and manages three layers of
+//! threads so that all blocking I/O stays off the caller's thread:
+//!
+//! | Thread | Responsibility |
+//! |--------|----------------|
+//! | **ep0** | Blocks on `EVENT_FETCH`; handles `GET_DESCRIPTOR`, `SET_CONFIGURATION`, vendor requests |
+//! | **ep_out × N** | One per controller slot; blocks on `EP_READ` for rumble/LED output reports |
+//! | **caller** | Calls `EP_WRITE` to send input reports; polls output via `mpsc` channel |
+//!
+//! The kernel's raw-gadget driver does not support `O_NONBLOCK` on ioctls, so
+//! all blocking calls are isolated in the background threads above and
+//! communicate with the main thread via channels and a condvar for the
+//! ready-signal.
+//!
+//! # Requirements
+//!
+//! - Linux kernel with `raw_gadget` module loaded (`sudo modprobe raw_gadget`)
+//! - USB OTG-capable hardware (Raspberry Pi Zero / Zero 2W / Pi 4 device mode)
+//! - Process must have permission to open `/dev/raw-gadget` (typically `root`)
 
 use std::io;
 use std::mem::size_of;
@@ -53,6 +65,15 @@ impl SharedState {
 // RawGadgetTransport
 // ---------------------------------------------------------------------------
 
+/// Production [`Transport`](crate::Transport) that drives a real USB OTG port via raw-gadget.
+///
+/// Create with [`RawGadgetTransport::new`], then pass to [`WirelessReceiver::new`](crate::WirelessReceiver::new).
+/// The transport self-manages enumeration in background threads; the caller
+/// only needs to call [`send_input`](crate::WirelessReceiver::send_input) and
+/// [`poll_rumble`](crate::WirelessReceiver::poll_rumble) /
+/// [`poll_led`](crate::WirelessReceiver::poll_led) each tick.
+///
+/// Dropping the transport cleanly shuts down all background threads.
 pub struct RawGadgetTransport {
     fd: RawFd,
     _num_interfaces: u8,
