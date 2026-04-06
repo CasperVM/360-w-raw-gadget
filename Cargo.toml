@@ -1,0 +1,22 @@
+[package]
+name = "x360-w-raw-gadget"
+version = "0.1.0"
+edition = "2021"
+description = "Testable Rust core for an Xbox 360 wireless receiver raw-gadget emulator"
+license = "MIT"
+
+[lib]
+name = "x360_w_raw_gadget"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+
+[dependencies]
+libc = "0.2"
+
+[[bin]]
+name = "x360-w-gadget"
+path = "src/main.rs"
+

@@ -1,6 +1,7 @@
 example
 *.txt
 .vscode
+/target/
 
 # Prerequisites
 *.d
