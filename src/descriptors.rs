@@ -15,6 +15,17 @@ pub enum DescriptorError {
     StringNotFound(u8),
 }
 
+impl std::fmt::Display for DescriptorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidInterfaceCount(n) => write!(f, "invalid interface count: {n} (must be 1–4)"),
+            Self::StringNotFound(id) => write!(f, "string descriptor not found: {id}"),
+        }
+    }
+}
+
+impl std::error::Error for DescriptorError {}
+
 /// USB vendor ID for Microsoft Corporation.
 pub const USB_VENDOR: u16 = 0x045e;
 /// USB product ID for the Xbox 360 Wireless Receiver.
