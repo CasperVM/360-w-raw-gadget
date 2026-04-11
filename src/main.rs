@@ -45,7 +45,7 @@ fn main() {
         .map(|s| s.as_str())
         .collect();
 
-    let num_interfaces: u8 = positional.get(0)
+    let num_interfaces: u8 = positional.first()
         .and_then(|s| s.parse().ok())
         .unwrap_or(4);
 
@@ -79,7 +79,7 @@ fn main() {
             let state = InputState::default().with_button(Button::A, a_pressed);
             for slot in 0..num_interfaces {
                 if let Some(s) = receiver.slot_mut(slot) {
-                    s.set_state(state.clone());
+                    s.set_state(state);
                 }
             }
             eprintln!("[demo] all slots A button: {}", if a_pressed { "DOWN" } else { "UP" });

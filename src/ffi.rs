@@ -214,6 +214,8 @@ impl UsbEndpointDescriptor {
 // Unsafe ioctl wrappers
 // ---------------------------------------------------------------------------
 
+/// # Safety
+/// Caller must ensure `/dev/raw-gadget` exists and that the returned `RawFd` is eventually closed.
 pub unsafe fn raw_gadget_open() -> io::Result<RawFd> {
     let path = b"/dev/raw-gadget\0";
     let fd = libc::open(path.as_ptr() as *const libc::c_char, libc::O_RDWR);
@@ -224,6 +226,8 @@ pub unsafe fn raw_gadget_open() -> io::Result<RawFd> {
     }
 }
 
+/// # Safety
+/// Caller must ensure `/dev/raw-gadget` exists and that the returned `RawFd` is eventually closed.
 pub unsafe fn raw_gadget_open_nonblock() -> io::Result<RawFd> {
     let path = b"/dev/raw-gadget\0";
     // O_NONBLOCK is rejected by raw_gadget driver on open(); set it afterwards via fcntl.
@@ -239,15 +243,21 @@ pub unsafe fn raw_gadget_open_nonblock() -> io::Result<RawFd> {
     Ok(fd)
 }
 
+/// # Safety
+/// `fd` must be a valid file descriptor returned by [`raw_gadget_open`] or [`raw_gadget_open_nonblock`].
 pub unsafe fn raw_gadget_close(fd: RawFd) {
     libc::close(fd);
 }
 
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor. `init` must be a properly initialised `UsbRawInit`.
 pub unsafe fn raw_gadget_init(fd: RawFd, init: &UsbRawInit) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_INIT as libc::c_ulong, init as *const _);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
 }
 
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor that has been initialised with [`raw_gadget_init`].
 pub unsafe fn raw_gadget_run(fd: RawFd) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_RUN as libc::c_ulong, 0usize);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
@@ -255,50 +265,73 @@ pub unsafe fn raw_gadget_run(fd: RawFd) -> io::Result<()> {
 
 /// Fetch next event. Blocks until an event is available (or EAGAIN if O_NONBLOCK).
 /// Caller must set event.event.length = sizeof(UsbCtrlrequest) before calling.
+///
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor. `event` must be a valid, writable `UsbRawControlEvent`.
 pub unsafe fn raw_gadget_event_fetch(fd: RawFd, event: &mut UsbRawControlEvent) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_EVENT_FETCH as libc::c_ulong, event as *mut _);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
 }
 
 /// Send descriptor data on EP0 (device-to-host).
+///
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor. `io` must be a valid `UsbRawControlEpIo` with correct length.
 pub unsafe fn raw_gadget_ep0_write(fd: RawFd, io: &UsbRawControlEpIo) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_EP0_WRITE as libc::c_ulong, io as *const _);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
 }
 
 /// Read data from EP0 (host-to-device, e.g. SET_CONFIGURATION data phase).
+///
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor. `io` must be a valid, writable `UsbRawControlEpIo`.
 pub unsafe fn raw_gadget_ep0_read(fd: RawFd, io: &mut UsbRawControlEpIo) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_EP0_READ as libc::c_ulong, io as *mut _);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
 }
 
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor with an active EP0 setup transaction.
 pub unsafe fn raw_gadget_ep0_stall(fd: RawFd) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_EP0_STALL as libc::c_ulong, 0usize);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
 }
 
 /// Enable an endpoint. Returns the ep handle used for subsequent EP_WRITE/EP_READ.
+///
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor. `desc` must be a correctly populated `UsbEndpointDescriptor`.
 pub unsafe fn raw_gadget_ep_enable(fd: RawFd, desc: &UsbEndpointDescriptor) -> io::Result<i32> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_EP_ENABLE as libc::c_ulong, desc as *const _);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(rv) }
 }
 
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor. `ep` must be a handle previously returned by [`raw_gadget_ep_enable`].
 pub unsafe fn raw_gadget_ep_disable(fd: RawFd, ep: i32) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_EP_DISABLE as libc::c_ulong, ep as libc::c_ulong);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
 }
 
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor in the configuration phase.
 pub unsafe fn raw_gadget_configure(fd: RawFd) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_CONFIGURE as libc::c_ulong, 0usize);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
 }
 
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor.
 pub unsafe fn raw_gadget_vbus_draw(fd: RawFd, power: u32) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_VBUS_DRAW as libc::c_ulong, power as libc::c_ulong);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
 }
 
 /// Write an interrupt IN report (controller → host).
+///
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor. `io` must be a valid `UsbRawInterruptEpIo` with correct length.
 pub unsafe fn raw_gadget_ep_write(fd: RawFd, io: &UsbRawInterruptEpIo) -> io::Result<()> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_EP_WRITE as libc::c_ulong, io as *const _);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
@@ -306,6 +339,9 @@ pub unsafe fn raw_gadget_ep_write(fd: RawFd, io: &UsbRawInterruptEpIo) -> io::Re
 
 /// Read an interrupt OUT report (host → controller, e.g. rumble).
 /// Returns EAGAIN error if O_NONBLOCK and no data available.
+///
+/// # Safety
+/// `fd` must be a valid raw-gadget file descriptor. `io` must be a valid, writable `UsbRawInterruptEpIo`.
 pub unsafe fn raw_gadget_ep_read(fd: RawFd, io: &mut UsbRawInterruptEpIo) -> io::Result<i32> {
     let rv = libc::ioctl(fd, USB_RAW_IOCTL_EP_READ as libc::c_ulong, io as *mut _);
     if rv < 0 { Err(io::Error::last_os_error()) } else { Ok(rv) }

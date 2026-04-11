@@ -100,7 +100,7 @@ pub mod capi;
 pub use controller::{Button, ControllerSlot, InputState};
 pub use descriptors::{ConfigDescriptorSet, DescriptorError, ReceiverIdentity, StringDescriptorMap};
 pub use protocol::{InputReport, LedAnimation, LedReport, OutputReport, RumbleReport};
-pub use session::{HostCommand, Transport, WirelessReceiver};
+pub use session::{Transport, WirelessReceiver};
 #[cfg(target_os = "linux")]
 pub use transport_hw::RawGadgetTransport;
 

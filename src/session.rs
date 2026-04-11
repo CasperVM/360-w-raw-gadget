@@ -7,19 +7,10 @@
 //! Swap [`MockTransport`] in for unit tests and [`RawGadgetTransport`](crate::RawGadgetTransport)
 //! for real hardware — the receiver code is identical in both cases.
 
-use std::collections::VecDeque;
 use std::error::Error;
 use crate::controller::ControllerSlot;
 use crate::descriptors::ConfigDescriptorSet;
 use crate::protocol::{InputReport, LedReport, OutputReport, RumbleReport};
-
-/// A control-transfer command received from the USB host during enumeration.
-#[derive(Debug, Clone)]
-pub enum HostCommand {
-    GetDescriptor { descriptor_type: u8 },
-    SetConfiguration { config: u8 },
-    RequestInput,
-}
 
 /// Abstraction over the USB I/O layer.
 ///
@@ -31,9 +22,6 @@ pub trait Transport {
     fn write_descriptor(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
     /// Send a 20-byte HID input report for `interface` (0-based slot index).
     fn write_input_report(&mut self, interface: u8, report: &InputReport) -> Result<(), Box<dyn Error>>;
-    /// Read the next pending control-transfer request from the host, if any.
-    fn read_control(&mut self) -> Result<Option<HostCommand>, Box<dyn Error>>;
-
     /// Poll for a pending rumble command from the host on this interface's OUT endpoint.
     /// Returns Ok(None) if nothing is available (non-blocking).
     fn poll_rumble(&mut self, interface: u8) -> Result<Option<RumbleReport>, Box<dyn Error>>;
@@ -79,8 +67,6 @@ pub struct MockTransport {
     descriptors_sent: Vec<Vec<u8>>,
     pending_rumble: [Option<RumbleReport>; 4],
     pending_led: [Option<LedReport>; 4],
-    // Legacy queue for queue_output() compatibility
-    _legacy_queue: VecDeque<(u8, OutputReport)>,
 }
 
 impl MockTransport {
@@ -90,7 +76,6 @@ impl MockTransport {
             descriptors_sent: Vec::new(),
             pending_rumble: [None, None, None, None],
             pending_led: [None, None, None, None],
-            _legacy_queue: VecDeque::new(),
         }
     }
 
@@ -103,10 +88,9 @@ impl MockTransport {
     }
 
     pub fn queue_output(&mut self, interface: u8, report: OutputReport) {
-        let i = interface as usize;
         match report {
-            OutputReport::Rumble(r) => self.pending_rumble[i] = Some(r),
-            OutputReport::Led(l)    => self.pending_led[i]    = Some(l),
+            OutputReport::Rumble(r) => self.pending_rumble[interface as usize] = Some(r),
+            OutputReport::Led(l)    => self.pending_led[interface as usize]    = Some(l),
         }
     }
 }
@@ -126,10 +110,6 @@ impl Transport for MockTransport {
     fn write_input_report(&mut self, _interface: u8, report: &InputReport) -> Result<(), Box<dyn Error>> {
         self.last_report = Some(report.clone());
         Ok(())
-    }
-
-    fn read_control(&mut self) -> Result<Option<HostCommand>, Box<dyn Error>> {
-        Ok(None)
     }
 
     fn poll_rumble(&mut self, interface: u8) -> Result<Option<RumbleReport>, Box<dyn Error>> {

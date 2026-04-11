@@ -69,8 +69,13 @@ const DEFAULT_UDC: &str = "3f980000.usb";
 ///   Pass NULL to use the Pi Zero 2W default (`"3f980000.usb"`).
 ///
 /// Returns an opaque handle on success, or NULL on failure.
+///
+/// # Safety
+///
+/// `driver` and `device`, if non-NULL, must be valid, NUL-terminated C strings
+/// that remain valid for the duration of this call.
 #[no_mangle]
-pub extern "C" fn x360_open(
+pub unsafe extern "C" fn x360_open(
     num_slots: c_int,
     driver: *const c_char,
     device: *const c_char,
@@ -118,8 +123,13 @@ pub extern "C" fn x360_open(
 // ---------------------------------------------------------------------------
 
 /// Destroy a receiver opened with `x360_open`.
+///
+/// # Safety
+///
+/// `handle` must be either NULL or a valid pointer returned by `x360_open` that
+/// has not yet been closed. After this call the pointer is invalid.
 #[no_mangle]
-pub extern "C" fn x360_close(handle: *mut WirelessReceiver) {
+pub unsafe extern "C" fn x360_close(handle: *mut WirelessReceiver) {
     if !handle.is_null() {
         unsafe { drop(Box::from_raw(handle)) };
     }
@@ -134,8 +144,13 @@ pub extern "C" fn x360_close(handle: *mut WirelessReceiver) {
 /// `data` must point to at least `len` bytes. `len` should be 20.
 ///
 /// Returns 1 on success, 0 on error (null handle, bad length, I/O error).
+///
+/// # Safety
+///
+/// `handle` must be a valid, non-NULL pointer returned by `x360_open`.
+/// `data` must point to at least `len` valid, readable bytes.
 #[no_mangle]
-pub extern "C" fn x360_send(
+pub unsafe extern "C" fn x360_send(
     handle: *mut WirelessReceiver,
     slot: c_int,
     data: *const u8,
@@ -162,8 +177,13 @@ pub extern "C" fn x360_send(
 /// `*right_out` and returns 1.
 /// Returns 0 if nothing is pending.
 /// Returns -1 on error (null handle or out pointers).
+///
+/// # Safety
+///
+/// `handle` must be a valid, non-NULL pointer returned by `x360_open`.
+/// `left_out` and `right_out` must be valid, writable pointers to `u8`.
 #[no_mangle]
-pub extern "C" fn x360_poll_rumble(
+pub unsafe extern "C" fn x360_poll_rumble(
     handle: *mut WirelessReceiver,
     slot: c_int,
     left_out: *mut u8,
@@ -195,8 +215,12 @@ pub extern "C" fn x360_poll_rumble(
 /// Returns the animation ID (0–13) if a command is pending.
 /// Returns -1 if nothing is pending.
 /// Returns -2 on error (null handle).
+///
+/// # Safety
+///
+/// `handle` must be a valid, non-NULL pointer returned by `x360_open`.
 #[no_mangle]
-pub extern "C" fn x360_poll_led(
+pub unsafe extern "C" fn x360_poll_led(
     handle: *mut WirelessReceiver,
     slot: c_int,
 ) -> c_int {

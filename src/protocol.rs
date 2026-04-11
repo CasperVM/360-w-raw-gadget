@@ -50,7 +50,7 @@ impl InputReport {
 
         // byte[2]: dpad | start | back | l3 | r3
         report.0[2] =
-            (state.dpad_up    as u8) << 0
+            (state.dpad_up    as u8)
             | (state.dpad_down  as u8) << 1
             | (state.dpad_left  as u8) << 2
             | (state.dpad_right as u8) << 3
@@ -61,7 +61,7 @@ impl InputReport {
 
         // byte[3]: lb | rb | guide | (reserved) | a | b | x | y
         report.0[3] =
-            (state.lb    as u8) << 0
+            (state.lb    as u8)
             | (state.rb    as u8) << 1
             | (state.guide as u8) << 2
             | (state.a     as u8) << 4

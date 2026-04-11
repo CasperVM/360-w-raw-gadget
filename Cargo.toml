@@ -2,6 +2,7 @@
 name = "x360-w-raw-gadget"
 version = "1.0.2"
 edition = "2021"
+rust-version = "1.70"
 description = "Xbox 360 wireless receiver emulator for Linux via raw-gadget — Rust core + C FFI shared library"
 license = "MIT"
 repository = "https://github.com/CasperVM/360-w-raw-gadget"
@@ -19,8 +20,6 @@ name = "x360_w_raw_gadget"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
-[features]
-default = []
 
 [dependencies]
 libc = "0.2"

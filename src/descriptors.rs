@@ -94,17 +94,18 @@ impl ConfigDescriptorSet {
     /// Returns [`DescriptorError::InvalidInterfaceCount`] if
     /// `num_interfaces` is 0 or greater than 4.
     pub fn new(num_interfaces: u8) -> Result<Self, DescriptorError> {
-        if num_interfaces < 1 || num_interfaces > 4 {
+        if !(1..=4).contains(&num_interfaces) {
             return Err(DescriptorError::InvalidInterfaceCount(num_interfaces));
         }
 
+        let identity = ReceiverIdentity::default();
         let mut strings = StringDescriptorMap::new();
-        strings.insert(0x01, "©Microsoft Corporation".to_string());
-        strings.insert(0x02, "Xbox 360 Wireless Receiver for Windows".to_string());
-        strings.insert(0x03, "08FEC93".to_string());
+        strings.insert(0x01, identity.manufacturer.clone());
+        strings.insert(0x02, identity.product_name.clone());
+        strings.insert(0x03, identity.serial.clone());
 
         Ok(Self {
-            identity: ReceiverIdentity::default(),
+            identity,
             num_interfaces,
             strings,
         })

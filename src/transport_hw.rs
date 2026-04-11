@@ -33,7 +33,7 @@ use std::os::fd::RawFd;
 use crate::descriptors::ConfigDescriptorSet;
 use crate::ffi::*;
 use crate::protocol::{InputReport, LedReport, OutputReport, RumbleReport, INPUT_REPORT_LEN};
-use crate::session::{HostCommand, Transport};
+use crate::session::Transport;
 
 // ---------------------------------------------------------------------------
 // Shared state between ep0 thread and main transport
@@ -154,10 +154,6 @@ impl RawGadgetTransport {
         lock.lock().unwrap().ep_in[slot as usize]
     }
 
-    fn ep_out_handle(&self, slot: u8) -> Option<i32> {
-        let (lock, _) = &*self.state;
-        lock.lock().unwrap().ep_out[slot as usize]
-    }
 }
 
 impl Drop for RawGadgetTransport {
@@ -175,11 +171,6 @@ impl Transport for RawGadgetTransport {
     fn write_descriptor(&mut self, _data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         // no-op: descriptors are handled entirely by the ep0 thread
         Ok(())
-    }
-
-    fn read_control(&mut self) -> Result<Option<HostCommand>, Box<dyn std::error::Error>> {
-        // no-op: ep0 is self-managed by the ep0 thread
-        Ok(None)
     }
 
     fn write_input_report(
@@ -235,17 +226,14 @@ fn ep0_loop(
         // Tell the kernel how much space we have for the ctrl payload
         event.event.length = size_of::<UsbCtrlrequest>() as u32;
 
-        match unsafe { raw_gadget_event_fetch(fd, &mut event) } {
-            Err(e) => {
-                let errno = e.raw_os_error().unwrap_or(0);
-                if errno == libc::EAGAIN {
-                    thread::sleep(Duration::from_millis(1));
-                    continue;
-                }
-                // EBADF / ENODEV = fd closed, exit cleanly
-                break;
+        if let Err(e) = unsafe { raw_gadget_event_fetch(fd, &mut event) } {
+            let errno = e.raw_os_error().unwrap_or(0);
+            if errno == libc::EAGAIN {
+                thread::sleep(Duration::from_millis(1));
+                continue;
             }
-            Ok(()) => {}
+            // EBADF / ENODEV = fd closed, exit cleanly
+            break;
         }
 
         match event.event.typ {
