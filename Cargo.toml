@@ -1,6 +1,6 @@
 [package]
 name = "x360-w-raw-gadget"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 rust-version = "1.70"
 description = "Xbox 360 wireless receiver emulator for Linux via raw-gadget — Rust core + C FFI shared library"
