@@ -2,6 +2,11 @@
 
 [![crates.io](https://img.shields.io/crates/v/x360-w-raw-gadget)](https://crates.io/crates/x360-w-raw-gadget)
 [![docs.rs](https://docs.rs/x360-w-raw-gadget/badge.svg)](https://docs.rs/x360-w-raw-gadget)
+[![CI](https://github.com/CasperVM/360-w-raw-gadget/actions/workflows/ci.yml/badge.svg)](https://github.com/CasperVM/360-w-raw-gadget/actions/workflows/ci.yml)
+[![crates.io downloads](https://img.shields.io/crates/d/x360-w-raw-gadget)](https://crates.io/crates/x360-w-raw-gadget)
+[![MSRV](https://img.shields.io/badge/MSRV-1.70-orange?logo=rust)](https://www.rust-lang.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Linux-lightgrey?logo=linux&logoColor=white)](https://www.kernel.org/)
 
 Emulates an Xbox 360 wireless receiver (up to 4 controllers) on Linux via the raw-gadget kernel interface.
 
