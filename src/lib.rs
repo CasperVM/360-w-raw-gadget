@@ -96,6 +96,8 @@ pub mod session;
 pub mod transport_hw;
 #[cfg(target_os = "linux")]
 pub mod capi;
+#[cfg(target_os = "linux")]
+pub mod udc;
 
 pub use controller::{Button, ControllerSlot, InputState};
 pub use descriptors::{ConfigDescriptorSet, DescriptorError, ReceiverIdentity, StringDescriptorMap};
@@ -103,6 +105,8 @@ pub use protocol::{InputReport, LedAnimation, LedReport, OutputReport, RumbleRep
 pub use session::{Transport, WirelessReceiver};
 #[cfg(target_os = "linux")]
 pub use transport_hw::RawGadgetTransport;
+#[cfg(target_os = "linux")]
+pub use udc::detect_udc;
 
 /// Global debug flag. When `true`, the hardware transport prints verbose logs
 /// to stderr. Set via [`set_debug`], the `--debug` CLI flag, or the

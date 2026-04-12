@@ -12,7 +12,7 @@
 //! | Argument | Default | Description |
 //! |---|---|---|
 //! | `num_interfaces` | `4` | Controller slots to expose (1–4) |
-//! | `driver` | `3f980000.usb` | UDC driver name |
+//! | `driver` | auto-detected from `/sys/class/udc` | UDC driver name |
 //! | `device` | same as driver | UDC device name |
 //! | `--demo` | off | Toggle A button on all slots every second |
 //! | `--debug` | off | Print verbose USB traffic to stderr |
@@ -26,6 +26,7 @@ use std::thread;
 
 use x360_w_raw_gadget::{
     Button, ConfigDescriptorSet, InputState, OutputReport, WirelessReceiver,
+    detect_udc,
     set_debug,
     transport_hw::RawGadgetTransport,
 };
@@ -49,8 +50,14 @@ fn main() {
         .and_then(|s| s.parse().ok())
         .unwrap_or(4);
 
-    let driver = positional.get(1).copied().unwrap_or("3f980000.usb");
-    let device = positional.get(2).copied().unwrap_or(driver);
+    let driver = positional
+        .get(1)
+        .map(|s| (*s).to_string())
+        .unwrap_or_else(|| detect_udc().expect("failed to detect UDC from /sys/class/udc"));
+    let device = positional
+        .get(2)
+        .map(|s| (*s).to_string())
+        .unwrap_or_else(|| driver.clone());
 
     let config = ConfigDescriptorSet::new(num_interfaces)
         .expect("invalid interface count (must be 1-4)");
@@ -60,7 +67,7 @@ fn main() {
         if demo_mode  { ", demo"  } else { "" },
         if debug_mode { ", debug" } else { "" });
 
-    let transport = RawGadgetTransport::new(&config, driver, device)
+    let transport = RawGadgetTransport::new(&config, &driver, &device)
         .expect("failed to open /dev/raw-gadget (run as root?)");
 
     let mut receiver = WirelessReceiver::new(config, Box::new(transport));

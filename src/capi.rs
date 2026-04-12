@@ -55,8 +55,7 @@ use std::os::raw::{c_char, c_int};
 use crate::descriptors::ConfigDescriptorSet;
 use crate::session::WirelessReceiver;
 use crate::transport_hw::RawGadgetTransport;
-
-const DEFAULT_UDC: &str = "3f980000.usb";
+use crate::udc::detect_udc;
 
 // ---------------------------------------------------------------------------
 // x360_open
@@ -65,8 +64,8 @@ const DEFAULT_UDC: &str = "3f980000.usb";
 /// Open a wireless receiver gadget.
 ///
 /// `num_slots`: number of controller slots (1–4).
-/// `driver` / `device`: UDC driver/device name (e.g. `"3f980000.usb"`).
-///   Pass NULL to use the Pi Zero 2W default (`"3f980000.usb"`).
+/// `driver` / `device`: UDC driver/device name (e.g. `"20980000.usb"`).
+///   Pass NULL to auto-detect the first UDC from `/sys/class/udc`.
 ///
 /// Returns an opaque handle on success, or NULL on failure.
 ///
@@ -92,24 +91,27 @@ pub unsafe extern "C" fn x360_open(
     };
 
     let driver_str = if driver.is_null() {
-        DEFAULT_UDC
+        match detect_udc() {
+            Ok(s) => s,
+            Err(_) => return std::ptr::null_mut(),
+        }
     } else {
         match unsafe { CStr::from_ptr(driver) }.to_str() {
-            Ok(s) => s,
+            Ok(s) => s.to_string(),
             Err(_) => return std::ptr::null_mut(),
         }
     };
 
     let device_str = if device.is_null() {
-        DEFAULT_UDC
+        driver_str.clone()
     } else {
         match unsafe { CStr::from_ptr(device) }.to_str() {
-            Ok(s) => s,
+            Ok(s) => s.to_string(),
             Err(_) => return std::ptr::null_mut(),
         }
     };
 
-    let transport = match RawGadgetTransport::new(&config, driver_str, device_str) {
+    let transport = match RawGadgetTransport::new(&config, &driver_str, &device_str) {
         Ok(t) => t,
         Err(_) => return std::ptr::null_mut(),
     };
